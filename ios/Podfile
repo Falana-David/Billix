@@ -5,8 +5,11 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-platform :ios, min_ios_version_supported
+platform :ios, '14.0'
 prepare_react_native_project!
+
+# Set use_modular_headers! globally
+use_modular_headers!
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
@@ -23,6 +26,14 @@ target 'BillixIOSV1' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  pod 'Firebase/Core'
+  pod 'Firebase/Auth'
+  pod 'Firebase/Firestore'
+  pod 'Firebase/Storage'
+  pod 'FirebaseCoreInternal'
+  pod 'GoogleUtilities'
+  pod 'lottie-ios'
+
   target 'BillixIOSV1Tests' do
     inherit! :complete
     # Pods for testing
@@ -36,5 +47,12 @@ target 'BillixIOSV1' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    installer.pods_project.targets.each do |target|
+      if ['gRPC-C++', 'BoringSSL-GRPC', 'abseil', 'FBLPromises', 'gRPC-Core', 'GoogleUtilities', 'gRPC++', 'RCT-Folly'].include?(target.name)
+        target.build_configurations.each do |config|
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+        end
+      end
+    end
   end
 end
