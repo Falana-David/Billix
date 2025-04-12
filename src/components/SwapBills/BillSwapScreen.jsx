@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, TextInput, ActivityIndicator, Image, Modal } from 'react-native';
 import Header from '../Header';
+import Video from 'react-native-video';
 
 const BillSwapScreen = ({ navigation }) => {
   const [currentPage, setCurrentPage] = useState('LandingPage');
@@ -72,12 +73,17 @@ const BillSwapScreen = ({ navigation }) => {
             BillSwap allows you to trade bill payment responsibilities with others who may find it more convenient or beneficial to pay a different type of bill. Save money and make life easier with BillSwap.
           </Text>
           <View style={styles.howItWorks}>
-            <Text style={styles.howItWorksTitle}>How It Works</Text>
-            {/* Replace with your video or animation component */}
-            <View style={styles.videoPlaceholder}>
-              <Text>Video/Animation Placeholder</Text>
-            </View>
-          </View>
+  <Text style={styles.howItWorksTitle}>How It Works</Text>
+  <Video
+    source={require('../assets/Billix_Final_Animation.mp4')}
+    resizeMode="contain"
+    repeat
+    muted={false}
+    controls
+    style={styles.video}
+  />
+</View>
+
         </View>
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('BillSwapSelection')}>
@@ -457,6 +463,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16, // Matches the pagination button text size
   },  
+
+  video: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+  }
+  
 });
 
 export default BillSwapScreen;

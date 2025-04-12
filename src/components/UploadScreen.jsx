@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Video from 'react-native-video';
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,9 +21,20 @@ const WelcomeToBillSwap = () => {
       </View>
 
       {/* Video Placeholder Section */}
-      <View style={styles.videoContainer}>
-        <Text style={styles.videoText}>[Your Introduction Video Here]</Text>
-      </View>
+     {/* Intro Video Section */}
+<View style={styles.videoContainer}>
+  <Video
+    source={require('./assets/Billix_Final_Animation.mp4')} 
+    style={styles.video}
+    resizeMode="contain"
+    controls
+    repeat
+    muted={false}
+    onError={(e) => console.log('VIDEO ERROR:', e)}
+    onLoad={() => console.log('Video loaded')}
+  />
+</View>
+
 
       {/* Description Section */}
       <Text style={styles.description}>
@@ -104,6 +116,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
+  video: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+  }
+  
 });
 
 export default WelcomeToBillSwap;

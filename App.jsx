@@ -7,12 +7,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { enableScreens } from 'react-native-screens';
 
 import { UserProvider } from './src/components/UserContext';
-import HomeScreen from './src/components/HomeScreen';
+import HomeScreen from './src/components/HomeScreenFlow/HomeScreen';
 import ExploreScreen from './src/components/ExploreScreen';
 import UploadScreen from './src/components/UploadScreen';
 import RewardsScreen from './src/components/RewardsScreen';
 import ProfileScreen from './src/components/ProfileScreen';
-import SignUpScreen from './src/components/SigningUpUser/SignUpScreen';
+import SignUpScreen from './src/components/SignupFlow/SignUpScreen';
+import StarterBills from './src/components/SignupFlow/StarterBills';
+
 import LoginScreen from './src/components/LoginScreen';
 import TermsScreen from './src/components/TermsScreen';
 import WelcomeScreen from './src/components/WelcomeScreen';
@@ -57,6 +59,7 @@ const App = () => {
         <Stack.Navigator initialRouteName="Login">
           <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
           <Stack.Screen name="SignUp" component={SignUpScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="StarterBills" component={StarterBills} options={{ headerShown: false }} />
           <Stack.Screen name="Terms" component={TermsScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Home" component={MainTabs} options={{ headerShown: false }} />

@@ -163,9 +163,9 @@
     "@babel/types" "^7.24.7"
 
 "@babel/helper-plugin-utils@^7.0.0", "@babel/helper-plugin-utils@^7.10.4", "@babel/helper-plugin-utils@^7.12.13", "@babel/helper-plugin-utils@^7.14.5", "@babel/helper-plugin-utils@^7.18.6", "@babel/helper-plugin-utils@^7.20.2", "@babel/helper-plugin-utils@^7.22.5", "@babel/helper-plugin-utils@^7.24.7", "@babel/helper-plugin-utils@^7.24.8", "@babel/helper-plugin-utils@^7.8.0", "@babel/helper-plugin-utils@^7.8.3":
-  version "7.24.8"
-  resolved "https://registry.npmjs.org/@babel/helper-plugin-utils/-/helper-plugin-utils-7.24.8.tgz"
-  integrity sha512-FFWx5142D8h2Mgr/iPVGH5G7w6jDn4jUSpZTyDnQO0Yn7Ks2Kuz6Pci8H6MPCoUJegd/UZQ3tAvfLCxQSnWWwg==
+  version "7.26.5"
+  resolved "https://registry.npmjs.org/@babel/helper-plugin-utils/-/helper-plugin-utils-7.26.5.tgz"
+  integrity sha512-RS+jZcRdZdRFzMyr+wcsaqOmld1/EqTghfaBGQQd/WnRdzdlvSZ//kF7U8VQTxf1ynZ4cjUcYgjVGx13ewNPMg==
 
 "@babel/helper-remap-async-to-generator@^7.18.9", "@babel/helper-remap-async-to-generator@^7.24.7", "@babel/helper-remap-async-to-generator@^7.25.0":
   version "7.25.0"
@@ -574,7 +574,7 @@
   dependencies:
     "@babel/helper-plugin-utils" "^7.24.8"
 
-"@babel/plugin-transform-class-properties@^7.25.4":
+"@babel/plugin-transform-class-properties@^7.0.0-0", "@babel/plugin-transform-class-properties@^7.25.4":
   version "7.25.4"
   resolved "https://registry.npmjs.org/@babel/plugin-transform-class-properties/-/plugin-transform-class-properties-7.25.4.tgz"
   integrity sha512-nZeZHyCWPfjkdU5pA/uHiTaDAFUEqkpzf1YoQT2NeSynCGYq9rxfyI3XpQbfx/a0hSnFH6TGlEXvae5Vi7GD8g==
@@ -591,7 +591,7 @@
     "@babel/helper-plugin-utils" "^7.24.7"
     "@babel/plugin-syntax-class-static-block" "^7.14.5"
 
-"@babel/plugin-transform-classes@^7.0.0", "@babel/plugin-transform-classes@^7.25.4":
+"@babel/plugin-transform-classes@^7.0.0", "@babel/plugin-transform-classes@^7.0.0-0", "@babel/plugin-transform-classes@^7.25.4":
   version "7.25.4"
   resolved "https://registry.npmjs.org/@babel/plugin-transform-classes/-/plugin-transform-classes-7.25.4.tgz"
   integrity sha512-oexUfaQle2pF/b6E0dwsxQtAol9TLSO88kQvym6HHBWFliV2lGdrPieX+WgMRLSJDVzdYywk7jXbLPuO2KLTLg==
@@ -974,7 +974,7 @@
     "@babel/helper-create-regexp-features-plugin" "^7.24.7"
     "@babel/helper-plugin-utils" "^7.24.7"
 
-"@babel/plugin-transform-unicode-regex@^7.0.0", "@babel/plugin-transform-unicode-regex@^7.24.7":
+"@babel/plugin-transform-unicode-regex@^7.0.0", "@babel/plugin-transform-unicode-regex@^7.0.0-0", "@babel/plugin-transform-unicode-regex@^7.24.7":
   version "7.24.7"
   resolved "https://registry.npmjs.org/@babel/plugin-transform-unicode-regex/-/plugin-transform-unicode-regex-7.24.7.tgz"
   integrity sha512-hlQ96MBZSAXUq7ltkjtu3FJCCSMx/j629ns3hA3pXnBXjanNP0LHi+JpPeA81zaWgVK1VGH95Xuy7u0RyQ8kMg==
@@ -1735,10 +1735,10 @@
   resolved "https://registry.npmjs.org/@react-native-community/progress-bar-android/-/progress-bar-android-1.0.5.tgz"
   integrity sha512-/IYLHdoqeDqqGQMh9/qYgIReISBIu09lLNbrn70r98+IqQe9WFLuhAr/sdrDKxCUZDQyLqUc0p3rJ50VV0tR3g==
 
-"@react-native-picker/picker@^2.7.7", "@react-native-picker/picker@>= 2.0":
-  version "2.7.7"
-  resolved "https://registry.npmjs.org/@react-native-picker/picker/-/picker-2.7.7.tgz"
-  integrity sha512-CTHthVmx8ujlH/u5AnxLQfsheh/DoEbo+Kbx0HGTlbKVLC1eZ4Kr9jXIIUcwB7JEgOXifdZIPQCsoTc/7GQ0ag==
+"@react-native-picker/picker@>= 2.0":
+  version "2.11.0"
+  resolved "https://registry.npmjs.org/@react-native-picker/picker/-/picker-2.11.0.tgz"
+  integrity sha512-QuZU6gbxmOID5zZgd/H90NgBnbJ3VV6qVzp6c7/dDrmWdX8S0X5YFYgDcQFjE3dRen9wB9FWnj2VVdPU64adSg==
 
 "@react-native/assets-registry@0.74.84":
   version "0.74.84"
@@ -4528,6 +4528,11 @@ fs.realpath@^1.0.0:
   resolved "https://registry.npmjs.org/fs.realpath/-/fs.realpath-1.0.0.tgz"
   integrity sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==
 
+fsevents@^2.3.2:
+  version "2.3.3"
+  resolved "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz"
+  integrity sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==
+
 function-bind@^1.1.2:
   version "1.1.2"
   resolved "https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz"
@@ -6820,10 +6825,10 @@ react-native-dropdown-select-list@^2.0.5:
   resolved "https://registry.npmjs.org/react-native-dropdown-select-list/-/react-native-dropdown-select-list-2.0.5.tgz"
   integrity sha512-TepbcagQVUMB6nLuIlVU2ghRpQHAECOeZWe8K04ymW6NqbKbxuczZSDFfdCiABiiQ2dFD+8Dz65y4K7/uUEqGg==
 
-react-native-element-dropdown@^2.12.1:
-  version "2.12.1"
-  resolved "https://registry.npmjs.org/react-native-element-dropdown/-/react-native-element-dropdown-2.12.1.tgz"
-  integrity sha512-Z3uWNFBoezDEsy9AZJxoDc9DxoAdfeprUjaInmbuzYOk6R0Y0UZ659JIalX20XNvrNRWJUfSZwbM94jWYNsIyw==
+react-native-element-dropdown@^2.12.4:
+  version "2.12.4"
+  resolved "https://registry.npmjs.org/react-native-element-dropdown/-/react-native-element-dropdown-2.12.4.tgz"
+  integrity sha512-abZc5SVji9FIt7fjojRYrbuvp03CoeZJrgvezQoDoSOrpiTqkX69ix5m+j06W2AVncA0VWvbT+vCMam8SoVadw==
   dependencies:
     lodash "^4.17.21"
 
@@ -6837,15 +6842,21 @@ react-native-geocoding@^0.5.0:
   resolved "https://registry.npmjs.org/react-native-geocoding/-/react-native-geocoding-0.5.0.tgz"
   integrity sha512-peTXRpRxPLiZpbTW43AOvoXXAEoS+eLnSo4KRY0hcL9F2hulWE5r7o5KiaLx8AWj35c6EJP3fdGHe754q2Gd2Q==
 
-react-native-gesture-handler@^2.17.1, "react-native-gesture-handler@>= 1.0.0", react-native-gesture-handler@>=2.0.0:
-  version "2.17.1"
-  resolved "https://registry.npmjs.org/react-native-gesture-handler/-/react-native-gesture-handler-2.17.1.tgz"
-  integrity sha512-pWfniN6NuVKUq40KACuD3NCMe+bWNQCpD3cmxL6aLSCTwPKYmf7l4Lp0/E/almpjvxhybJZtFLU0w4tmxnIKaA==
+react-native-gesture-flip-card@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.npmjs.org/react-native-gesture-flip-card/-/react-native-gesture-flip-card-1.1.0.tgz"
+  integrity sha512-+ZA2HgoR5eX20HlG25fOARavQKgxjeVhM0SrNVAPE5SVCh4/CkMIgAkXKWcTEgF5UaJEF7KeIY9PMI5uuYPjYw==
+  dependencies:
+    prop-types "^15.6.0"
+
+react-native-gesture-handler@^2.25.0, "react-native-gesture-handler@>= 1.0.0", react-native-gesture-handler@>=2.0.0:
+  version "2.25.0"
+  resolved "https://registry.npmjs.org/react-native-gesture-handler/-/react-native-gesture-handler-2.25.0.tgz"
+  integrity sha512-NPjJi6mislXxvjxQPU9IYwBjb1Uejp8GvAbE1Lhh+xMIMEvmgAvVIp5cz1P+xAbV6uYcRRArm278+tEInGOqWg==
   dependencies:
     "@egjs/hammerjs" "^2.0.17"
     hoist-non-react-statics "^3.3.0"
     invariant "^2.2.4"
-    prop-types "^15.7.2"
 
 react-native-google-places-autocomplete@^2.5.6:
   version "2.5.6"
@@ -6860,6 +6871,11 @@ react-native-image-picker@^4.10.3:
   version "4.10.3"
   resolved "https://registry.npmjs.org/react-native-image-picker/-/react-native-image-picker-4.10.3.tgz"
   integrity sha512-gLX8J6jCBkUt6jogpSdA7YyaGVLGYywRzMEwBciXshihpFZjc/cRlKymAVlu6Q7HMw0j3vrho6pI8ZGC5O/FGg==
+
+react-native-is-edge-to-edge@1.1.7:
+  version "1.1.7"
+  resolved "https://registry.npmjs.org/react-native-is-edge-to-edge/-/react-native-is-edge-to-edge-1.1.7.tgz"
+  integrity sha512-EH6i7E8epJGIcu7KpfXYXiV2JFIYITtq+rVS8uEb+92naMRBdxhTuS8Wn2Q7j9sqyO0B+Xbaaf9VdipIAmGW4w==
 
 react-native-linear-gradient@^2.8.3:
   version "2.8.3"
@@ -6952,19 +6968,23 @@ react-native-reanimated-carousel@^3.5.1:
   resolved "https://registry.npmjs.org/react-native-reanimated-carousel/-/react-native-reanimated-carousel-3.5.1.tgz"
   integrity sha512-9BBQV6JAYSQm2lV7MFtT4mzapXmW4IZO6s38gfiJL84Jg23ivGB1UykcNQauKgtHyhtW2NuZJzItb1s42lM+hA==
 
-react-native-reanimated@^3.14.0, "react-native-reanimated@>= 1.0.0", react-native-reanimated@>=2.0.0, react-native-reanimated@>=3.0.0, react-native-reanimated@>=3.3.0:
-  version "3.14.0"
-  resolved "https://registry.npmjs.org/react-native-reanimated/-/react-native-reanimated-3.14.0.tgz"
-  integrity sha512-TAxLtCfRyC/nOLeWoX/8MhdIF+Fi1e1NbLhIgEm5Kv9/gioAwSNaqLUYxjIClU1RaLwSTE8iaiHNVhTU4TS9DA==
+"react-native-reanimated@>= 1.0.0", react-native-reanimated@>=2.0.0, react-native-reanimated@>=3.0.0, react-native-reanimated@>=3.3.0:
+  version "3.17.3"
+  resolved "https://registry.npmjs.org/react-native-reanimated/-/react-native-reanimated-3.17.3.tgz"
+  integrity sha512-0dN+AB7Om9Fdq3Bvq4+ClGhv2sl1o6BhKum18CFNPh4dgMKybDSdRo2vhxTaZUJq6R3LC8gFI84IV0qCZmPbiw==
   dependencies:
     "@babel/plugin-transform-arrow-functions" "^7.0.0-0"
+    "@babel/plugin-transform-class-properties" "^7.0.0-0"
+    "@babel/plugin-transform-classes" "^7.0.0-0"
     "@babel/plugin-transform-nullish-coalescing-operator" "^7.0.0-0"
     "@babel/plugin-transform-optional-chaining" "^7.0.0-0"
     "@babel/plugin-transform-shorthand-properties" "^7.0.0-0"
     "@babel/plugin-transform-template-literals" "^7.0.0-0"
+    "@babel/plugin-transform-unicode-regex" "^7.0.0-0"
     "@babel/preset-typescript" "^7.16.7"
     convert-source-map "^2.0.0"
     invariant "^2.2.4"
+    react-native-is-edge-to-edge "1.1.7"
 
 react-native-safe-area-context@*, react-native-safe-area-context@^4.10.8, "react-native-safe-area-context@>= 3.0.0":
   version "4.10.8"
@@ -7036,6 +7056,11 @@ react-native-vector-icons@*, react-native-vector-icons@^10.2.0:
   dependencies:
     prop-types "^15.7.2"
     yargs "^16.1.1"
+
+react-native-video@^6.12.0:
+  version "6.12.0"
+  resolved "https://registry.npmjs.org/react-native-video/-/react-native-video-6.12.0.tgz"
+  integrity sha512-MPiOk/8qszBY2zAZZuuzyNPcRK6+UFHutzRcEJlGodZ5GCUNmw1vIE6FCInL22S/YpnGywwiKVQDQCjjqQx9Fg==
 
 react-native@*, "react-native@^0.0.0-0 || >=0.60 <1.0", "react-native@>= 0.50.0", "react-native@>= 0.59", "react-native@>= 0.62", "react-native@>= 0.64.3", react-native@>=0.46, react-native@>=0.47.1, react-native@>=0.57, react-native@>=0.6.0, react-native@>=0.60.0, react-native@>=0.64, react-native@>=0.69.9, react-native@0.74.2:
   version "0.74.2"
