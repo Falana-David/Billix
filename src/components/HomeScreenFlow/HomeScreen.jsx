@@ -2,10 +2,13 @@ import React, { useState, useContext } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import Collapsible from 'react-native-collapsible';
 import { UserContext } from '../UserContext';
+import { useNavigation } from '@react-navigation/native';
+
 
 const HomeScreen = () => {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const { user } = useContext(UserContext);
+  const navigation = useNavigation();
 
   const getGreeting = () => {
     const currentHour = new Date().getHours();
@@ -19,8 +22,13 @@ const HomeScreen = () => {
   };
 
   const handleImagePress = (imageName) => {
-    console.log(`${imageName} image pressed`);
+    if (imageName === 'Share Bill') {
+      navigation.navigate('StarterBill');
+    } else {
+      console.log(`${imageName} image pressed`);
+    }
   };
+  
 
   return (
     <SafeAreaView style={styles.safeArea}>

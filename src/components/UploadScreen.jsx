@@ -9,8 +9,9 @@ const WelcomeToBillSwap = () => {
   const navigation = useNavigation();
 
   const navigateToBillSwap = () => {
-    navigation.navigate('BillSwap'); // Ensure this matches your route name
+    navigation.navigate('StartSwap'); // Ensure this matches your route name
   };
+  
 
   return (
     <View style={styles.container}>

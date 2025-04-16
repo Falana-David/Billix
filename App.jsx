@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { enableScreens } from 'react-native-screens';
+import { StripeProvider } from '@stripe/stripe-react-native';
 
 import { UserProvider } from './src/components/UserContext';
 import HomeScreen from './src/components/HomeScreenFlow/HomeScreen';
@@ -13,7 +14,7 @@ import UploadScreen from './src/components/UploadScreen';
 import RewardsScreen from './src/components/RewardsScreen';
 import ProfileScreen from './src/components/ProfileScreen';
 import SignUpScreen from './src/components/SignupFlow/SignUpScreen';
-import StarterBills from './src/components/SignupFlow/StarterBills';
+import StarterBill from './src/components/HomeScreenFlow/StarterBill';
 
 import LoginScreen from './src/components/LoginScreen';
 import TermsScreen from './src/components/TermsScreen';
@@ -23,6 +24,8 @@ import BillInformationCollection from './src/components/SwapBills/BillInformatio
 import FindMatches from './src/components/SwapBills/FindMatches';
 import MatchDetails from './src/components/SwapBills/MatchDetails';
 import PaymentInformation from './src/components/SwapBills/PaymentInformation';
+import StartSwap from './src/components/SwapBills/StartSwap';
+
 import ConfirmationAndTracking from './src/components/SwapBills/ConfirmationAndTracking';
 import CustomTabBar from './src/components/CustomTabBar';
 import BillSwapSelection from './src/components/SwapBills/BillSwapSelection';
@@ -35,6 +38,7 @@ import CreateCampaignScreen from './src/components/CreateCampaignScreen';
 import BookmarkedQuestionsScreen from './src/components/BookmarkedQuestions';
 import EmergencyFundingRequestScreen from './src/components/EmergencyFundingRequestScreen'; // New import
 import ConfirmationScreen from './src/components/ConfirmationScreen'; // New import
+
 // import SplashScreen from './src/components/SplashScreen';
 
 enableScreens();
@@ -54,16 +58,23 @@ const MainTabs = () => (
 
 const App = () => {
   return (
+    <StripeProvider
+      publishableKey='pk_test_51RDIW7Rei024sC7gIuK3nV4GClnGaSM8e7b2nRvfM4LLygdrgXCvokxKRtEG17qRvFXypGJWfzBSnvUeaDuzLdqJ003K6knVr8'
+      urlScheme="billix"  // ← required for iOS redirects
+      merchantIdentifier="merchant.com.yourcompany.billix"  // ← for Apple Pay (optional but good)
+  >
     <UserProvider>
       <NavigationContainer>
         <Stack.Navigator initialRouteName="Login">
           <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
           <Stack.Screen name="SignUp" component={SignUpScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="StarterBills" component={StarterBills} options={{ headerShown: false }} />
+          <Stack.Screen name="StarterBill" component={StarterBill} options={{ headerShown: false }} />
           <Stack.Screen name="Terms" component={TermsScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Home" component={MainTabs} options={{ headerShown: false }} />
           <Stack.Screen name="BillSwap" component={BillSwapScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="StartSwap" component={StartSwap} options={{ headerShown: false }} />
+
           <Stack.Screen name="BillSwapSelection" component={BillSwapSelection} options={{ headerShown: false }} />
           <Stack.Screen name="BillInformationCollection" component={BillInformationCollection} options={{ headerShown: false }} />
           <Stack.Screen name="FindMatches" component={FindMatches} options={{ headerShown: false }} />
@@ -82,6 +93,8 @@ const App = () => {
         </Stack.Navigator>
       </NavigationContainer>
     </UserProvider>
+    </StripeProvider>
+
   );
 };
 
