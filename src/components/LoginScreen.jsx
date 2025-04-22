@@ -13,7 +13,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CheckBox from '@react-native-community/checkbox';
 import { UserContext } from './UserContext'; // Import UserContext
-import logo from './assets/logo.png'; // Update the path as necessary
+import logo from './assets/qqq.png'; // Update the path as necessary
 
 const MAX_ATTEMPTS = 5; // Maximum allowed login attempts
 const LOCKOUT_DURATION = 5 * 60 * 1000; // Lockout duration in milliseconds (5 minutes)

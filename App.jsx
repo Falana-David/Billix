@@ -25,20 +25,20 @@ import FindMatches from './src/components/SwapBills/FindMatches';
 import MatchDetails from './src/components/SwapBills/MatchDetails';
 import PaymentInformation from './src/components/SwapBills/PaymentInformation';
 import StartSwap from './src/components/SwapBills/StartSwap';
-
 import ConfirmationAndTracking from './src/components/SwapBills/ConfirmationAndTracking';
+
 import CustomTabBar from './src/components/CustomTabBar';
 import BillSwapSelection from './src/components/SwapBills/BillSwapSelection';
 import SponsorSwapScreen from './src/components/SwapBills/SponsorSwapScreen';
-import CampaignDetails from './src/components/CampaignDetails';
 import CommunityVotingScreen from './src/components/CommunityVotingScreen';
 import PotentialSwapsScreen from './src/components/PotentialSwapsScreen';
 import ResetPasswordScreen from './src/components/ResetPasswordScreen';
-import CreateCampaignScreen from './src/components/CreateCampaignScreen';
-import BookmarkedQuestionsScreen from './src/components/BookmarkedQuestions';
 import EmergencyFundingRequestScreen from './src/components/EmergencyFundingRequestScreen'; // New import
 import ConfirmationScreen from './src/components/ConfirmationScreen'; // New import
-
+import ChatScreen from './src/components/ChatScreen';
+import FAQScreen from './src/components/FAQScreen';
+import FundingScreen from './src/components/FundingScreen';
+import DailyVoteScreen from './src/components/DailyVoteScreen';
 // import SplashScreen from './src/components/SplashScreen';
 
 enableScreens();
@@ -74,6 +74,10 @@ const App = () => {
           <Stack.Screen name="Home" component={MainTabs} options={{ headerShown: false }} />
           <Stack.Screen name="BillSwap" component={BillSwapScreen} options={{ headerShown: false }} />
           <Stack.Screen name="StartSwap" component={StartSwap} options={{ headerShown: false }} />
+          <Stack.Screen name="ChatScreen" component={ChatScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="FAQScreen" component={FAQScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="FundingScreen" component={FundingScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="DailyVoteScreen" component={DailyVoteScreen} options={{ headerShown: false }} />
 
           <Stack.Screen name="BillSwapSelection" component={BillSwapSelection} options={{ headerShown: false }} />
           <Stack.Screen name="BillInformationCollection" component={BillInformationCollection} options={{ headerShown: false }} />
@@ -82,12 +86,9 @@ const App = () => {
           <Stack.Screen name="PaymentInformation" component={PaymentInformation} options={{ headerShown: false }} />
           <Stack.Screen name="ConfirmationAndTracking" component={ConfirmationAndTracking} options={{ headerShown: false }} />
           <Stack.Screen name="SponsorSwap" component={SponsorSwapScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="CampaignDetails" component={CampaignDetails} options={{ title: 'Featured Campaigns' }} />
           <Stack.Screen name="CommunityVoting" component={CommunityVotingScreen} options={{ headerShown: false }} />
           <Stack.Screen name="PotentialSwaps" component={PotentialSwapsScreen} options={{ headerShown: false }} />
           <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="CreateCampaign" component={CreateCampaignScreen} options={{ title: 'Create Campaign' }} />
-          <Stack.Screen name="BookmarkedQuestionsScreen" component={BookmarkedQuestionsScreen} options={{ headerShown: false }} />
           <Stack.Screen name="EmergencyFundingRequest" component={EmergencyFundingRequestScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Confirmation" component={ConfirmationScreen} options={{ headerShown: false }} />
         </Stack.Navigator>

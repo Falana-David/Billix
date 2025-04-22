@@ -1,80 +1,195 @@
-// StartSwapScreenNoMap.js
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+} from 'react-native';
+import DocumentPicker from 'react-native-document-picker';
+import { Dropdown } from 'react-native-element-dropdown';
+import { useNavigation } from '@react-navigation/native';
 
-const billOptions = [
-  { id: '1', type: 'Internet', urgency: 'Due in 2 hrs', reward: '$15.72', badge: 'Priority Match' },
-  { id: '2', type: 'Rent', urgency: 'Due in 1 day', reward: '$14.61', badge: 'Standard' },
-  { id: '3', type: 'Electricity', urgency: 'Due in 5 hrs', reward: '$12.89', badge: 'Wait & Save' },
-  { id: '4', type: 'Phone Bill', urgency: 'Due in 12 hrs', reward: '$16.75', badge: 'Quick Bonus' },
+const billTypes = [
+  { label: 'Rent/Mortgage', value: 'rent' },
+  { label: 'Utilities', value: 'utilities' },
+  { label: 'Phone/Internet', value: 'phone' },
+  { label: 'Medical', value: 'medical' },
+  { label: 'Credit Card', value: 'credit' },
+  { label: 'Streaming', value: 'streaming' },
 ];
 
 const StartSwap = () => {
-  const [selectedId, setSelectedId] = useState(null);
+  const navigation = useNavigation();
+  const [fileName, setFileName] = useState(null);
+  const [billType, setBillType] = useState(null);
+
+  const handlePick = async () => {
+    try {
+      const res = await DocumentPicker.pick({
+        type: [DocumentPicker.types.images, DocumentPicker.types.pdf],
+      });
+      setFileName(res[0]?.name);
+    } catch (e) {
+      if (DocumentPicker.isCancel(e)) {
+        console.log('User cancelled picker');
+      } else {
+        console.error('Picker Error: ', e);
+      }
+    }
+  };
+  
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Start Swapping</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.header}>Upload Your Bill</Text>
+      <Text style={styles.subText}>Rent, phone, electric – any bill works. Let Billix handle the magic.</Text>
 
-      <FlatList
-        data={billOptions}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.card,
-              selectedId === item.id && styles.cardSelected,
-            ]}
-            onPress={() => setSelectedId(item.id)}
-          >
-            <View>
-              <Text style={styles.type}>{item.type}</Text>
-              <Text style={styles.urgency}>{item.urgency}</Text>
-            </View>
-            <View style={styles.right}>
-              <Text style={styles.reward}>{item.reward}</Text>
-              <Text style={styles.badge}>{item.badge}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+      <TouchableOpacity style={styles.uploadBox} onPress={handlePick}>
+        <Text style={styles.uploadText}>{fileName || '📎 Tap to upload (PDF, JPG, PNG)'}</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.label}>Bill Type</Text>
+      <Dropdown
+        style={styles.dropdown}
+        placeholderStyle={styles.dropdownText}
+        selectedTextStyle={styles.dropdownText}
+        data={billTypes}
+        maxHeight={200}
+        labelField="label"
+        valueField="value"
+        placeholder="Select Category"
+        value={billType}
+        onChange={item => setBillType(item.value)}
       />
 
-      <TouchableOpacity style={styles.swapButton}>
-        <Text style={styles.swapButtonText}>Start Swap</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+      <View style={styles.tipsBox}>
+        <Text style={styles.tip}>• Bill total and due date must be visible</Text>
+        <Text style={styles.tip}>• Autopay bills are fine</Text>
+        <Text style={styles.tip}>• Summary pages are accepted</Text>
+      </View>
+
+      <View style={styles.securityBox}>
+        <Text style={styles.securityText}>🔐 Your info is encrypted. Billix never shares your bill data.</Text>
+      </View>
+
+      <View style={styles.buttonRow}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.nextButton}>
+          <Text style={styles.nextButtonText}>Continue →</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 16 },
-  header: { fontSize: 22, fontWeight: '700', marginBottom: 12 },
-  card: {
-    backgroundColor: '#f6f6f6',
+  container: {
+    padding: 20,
+    backgroundColor: '#F0F8EC',
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#4A7C59',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  subText: {
+    fontSize: 15,
+    textAlign: 'center',
+    color: '#4A7C59',
+    marginBottom: 20,
+  },
+  uploadBox: {
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#4A7C59',
+    borderStyle: 'dashed',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    paddingVertical: 20,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  uploadText: {
+    color: '#2F5D4A',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  label: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#4A7C59',
+    marginBottom: 6,
+  },
+  dropdown: {
+    backgroundColor: '#E3F2E9',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    marginBottom: 24,
+    height: 48,
+    justifyContent: 'center',
+  },
+  dropdownText: {
+    fontSize: 15,
+    color: '#2F5D4A',
+  },
+  tipsBox: {
+    backgroundColor: '#EAF2E7',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  tip: {
+    fontSize: 14,
+    color: '#4A7C59',
+    marginBottom: 4,
+  },
+  securityBox: {
+    backgroundColor: '#DFF5E1',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 24,
+  },
+  securityText: {
+    fontSize: 14,
+    color: '#2F5D4A',
+    textAlign: 'center',
+  },
+  buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 10,
   },
-  cardSelected: {
-    backgroundColor: '#e6e2ff',
-    borderColor: '#6a5acd',
-    borderWidth: 2,
-  },
-  type: { fontSize: 18, fontWeight: '600' },
-  urgency: { fontSize: 14, color: '#666', marginTop: 4 },
-  right: { alignItems: 'flex-end' },
-  reward: { fontSize: 16, fontWeight: '700' },
-  badge: { fontSize: 12, color: '#6a5acd', marginTop: 4 },
-  swapButton: {
-    backgroundColor: '#6a5acd',
-    paddingVertical: 16,
+  backButton: {
+    flex: 1,
+    paddingVertical: 12,
+    backgroundColor: '#E3F2E9',
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 8,
   },
-  swapButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  backButtonText: {
+    color: '#2F5D4A',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  nextButton: {
+    flex: 1,
+    paddingVertical: 12,
+    backgroundColor: '#4A7C59',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  nextButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 15,
+  },
 });
 
 export default StartSwap;
