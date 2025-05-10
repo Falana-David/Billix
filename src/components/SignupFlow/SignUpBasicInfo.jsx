@@ -7,10 +7,17 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  Image,
+  ScrollView,
+  Modal
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
-
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { Switch } from 'react-native';
+import { Buffer } from 'buffer';
+import TermsScreen from '../HomeScreenFlow/Profile_Information/TermsScreen';
+import { useNavigation } from '@react-navigation/native';
+
 
 const US_STATES = [
   'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
@@ -23,23 +30,23 @@ const US_STATES = [
   'Wisconsin', 'Wyoming',
 ];
 
+const toBase64 = async (uri) => {
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  const reader = new FileReader();
+  return await new Promise((resolve, reject) => {
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
 const SignUpBasicInfo = ({
-  firstName,
-  lastName,
-  email,
-  password,
-  confirmPassword,
-  phone,
-  isOver18,
-  setFirstName,
-  setLastName,
-  setEmail,
-  setPassword,
-  setConfirmPassword,
-  setPhone,
-  setIsOver18,
-  handleNextStep,
+  firstName, lastName, email, password, confirmPassword, phone,
+  isOver18, gender, setGender, setFirstName, setLastName, setEmail, setPassword,
+  setConfirmPassword, setPhone, setIsOver18, handleNextStep, profileImage, setProfileImage
 }) => {
+
   const [animation] = useState(new Animated.Value(0));
   const [step, setStep] = useState(0);
   const [code, setCode] = useState('');
@@ -47,6 +54,13 @@ const SignUpBasicInfo = ({
   const [verifying, setVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState('');
   const [state, setState] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const navigation = useNavigation();
+  const [termsVisible, setTermsVisible] = useState(false);
+  const [hasAgreedToTerms, setHasAgreedToTerms] = useState(false);
+  
 
   useEffect(() => {
     Animated.timing(animation, {
@@ -76,6 +90,17 @@ const SignUpBasicInfo = ({
 
   const passwordStrength = getPasswordStrength(password);
 
+  const pickProfileImage = () => {
+    launchImageLibrary({}, async (res) => {
+      if (res.assets?.length > 0) {
+        const uri = res.assets[0].uri;
+        const base64 = await toBase64(uri);
+        setProfileImage(base64); 
+      }
+    });
+  };
+  
+
   const isPasswordValid = () =>
     password.length >= 6 &&
     /[A-Za-z]/.test(password) &&
@@ -83,15 +108,7 @@ const SignUpBasicInfo = ({
     /[@$!%*#?&]/.test(password) &&
     password === confirmPassword;
 
-  const isStepComplete =
-    firstName &&
-    lastName &&
-    validateEmail(email) &&
-    isPhoneValid() &&
-    isPasswordValid() &&
-    isOver18 &&
-    state;
-
+    
   const sendCode = async () => {
     const cleaned = phone.replace(/\D/g, '');
     try {
@@ -142,31 +159,110 @@ const SignUpBasicInfo = ({
     }
   };
 
+  const stepChecks = [
+    () => firstName && lastName,
+    () => validateEmail(email) && isPhoneValid() && !emailError && !phoneError && codeSent,
+    () => code.length > 0,
+    () => isPasswordValid(),
+    () => state && isOver18,
+    () => hasAgreedToTerms,
+    () => true,
+    () => true,
+  ];
+
+  const handleNext = async () => {
+    if (step === 2) {
+      verifyCode();
+    } else if (step === 6) {
+      setStep((s) => s + 1); // advance if valid or empty
+    } else if (step < 7) {
+      setStep((s) => s + 1);
+    } else {
+      handleNextStep();
+    }
+  };
+  
+
+  const renderFooter = () => (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+      {step > 0 && step < 7 && (
+        <TouchableOpacity style={[styles.button, { flex: 1, marginRight: 10 }]} onPress={() => setStep((s) => s - 1)}>
+          <Text style={styles.buttonText}>Back</Text>
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity
+        style={[styles.button, !stepChecks[step]() && styles.buttonDisabled, { flex: 1 }]}
+        onPress={handleNext}
+        disabled={!stepChecks[step]()}
+      >
+        <Text style={styles.buttonText}>{step === 2 ? 'Confirm Code' : step === 7 ? 'Finish' : 'Next'}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const renderStep = () => {
     switch (step) {
       case 0:
         return (
           <>
-            <TextInput style={styles.input} placeholder="First Name" value={firstName} onChangeText={setFirstName} placeholderTextColor="#888" />
-            <TextInput style={styles.input} placeholder="Last Name" value={lastName} onChangeText={setLastName} placeholderTextColor="#888" />
+            <TextInput
+              style={styles.input}
+              placeholder="First Name"
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholderTextColor="#888"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Last Name"
+              value={lastName}
+              onChangeText={setLastName}
+              placeholderTextColor="#888"
+            />
           </>
         );
+  
       case 1:
         return (
           <>
-            <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" placeholderTextColor="#888" />
             <TextInput
-              style={styles.input}
-              placeholder="Phone Number"
-              value={phone}
-              onChangeText={(text) => {
-                const formatted = formatPhone(text);
-                setPhone(formatted);
-                if (!validatePhoneUS(formatted)) setCodeSent(false);
-              }}
-              keyboardType="phone-pad"
-              placeholderTextColor="#888"
-            />
+  style={styles.input}
+  placeholder="Email"
+  value={email}
+  onChangeText={(val) => {
+    const trimmed = val.trim().toLowerCase();
+    setEmail(trimmed);
+    if (!validateEmail(trimmed)) {
+      setEmailError('Please enter a valid email address');
+    } else {
+      setEmailError('');
+    }
+  }}
+  keyboardType="email-address"
+  placeholderTextColor="#888"
+/>
+{emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+
+<TextInput
+  style={styles.input}
+  placeholder="Phone Number"
+  value={phone}
+  onChangeText={(text) => {
+    const formatted = formatPhone(text);
+    setPhone(formatted);
+    setCodeSent(false);
+    if (!validatePhoneUS(formatted)) {
+      setPhoneError('Enter a valid 10-digit US phone number');
+    } else {
+      setPhoneError('');
+    }
+  }}
+  keyboardType="phone-pad"
+  placeholderTextColor="#888"
+/>
+{phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
+
+  
             <TouchableOpacity
               style={[styles.button, !isPhoneValid() && styles.buttonDisabled]}
               onPress={sendCode}
@@ -176,93 +272,166 @@ const SignUpBasicInfo = ({
             </TouchableOpacity>
           </>
         );
+  
       case 2:
         return (
           <>
-            <TextInput style={styles.input} placeholder="Enter Verification Code" value={code} onChangeText={setCode} keyboardType="numeric" placeholderTextColor="#888" />
-            {verificationError && <Text style={styles.errorText}>{verificationError}</Text>}
-            <TouchableOpacity
-              style={[styles.button, code.length === 0 && styles.buttonDisabled]}
-              onPress={verifyCode}
-              disabled={code.length === 0 || verifying}
-            >
-              <Text style={styles.buttonText}>{verifying ? 'Verifying...' : 'Confirm Code'}</Text>
-            </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Verification Code"
+              value={code}
+              onChangeText={setCode}
+              keyboardType="numeric"
+              placeholderTextColor="#888"
+            />
+            {verificationError ? <Text style={styles.errorText}>{verificationError}</Text> : null}
           </>
         );
+  
       case 3:
         return (
           <>
-            <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry placeholderTextColor="#888" />
-            <TextInput style={styles.input} placeholder="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry placeholderTextColor="#888" />
+<TextInput
+  style={styles.input}
+  placeholder="Password"
+  value={password}
+  onChangeText={setPassword}
+  secureTextEntry
+  autoCapitalize="none"
+  autoCorrect={false}
+  textContentType="newPassword"
+  placeholderTextColor="#888"
+/>
+
+<TextInput
+  style={styles.input}
+  placeholder="Confirm Password"
+  value={confirmPassword}
+  onChangeText={setConfirmPassword}
+  secureTextEntry
+  autoCapitalize="none"
+  autoCorrect={false}
+  textContentType="newPassword"
+  placeholderTextColor="#888"
+/>
+
+
+            <Text style={{ marginTop: 5, color: '#888' }}>
+              Password Strength: {passwordStrength}
+            </Text>
           </>
         );
+  
       case 4:
         return (
           <>
-            <Text style={{ marginBottom: 8 }}>Select Your State</Text>
-<Dropdown
+            <Dropdown
+              style={styles.dropdown}
+              data={US_STATES.map((s) => ({ label: s, value: s }))}
+              labelField="label"
+              valueField="value"
+              placeholder="Select State"
+              value={state}
+              onChange={(item) => setState(item.value)}
+            />
+                        <Dropdown
   style={styles.dropdown}
-  data={US_STATES.map(s => ({ label: s, value: s }))}
+  data={[
+    { label: 'Male', value: 'male' },
+    { label: 'Female', value: 'female' },
+    { label: 'Other', value: 'other' },
+  ]}
   labelField="label"
   valueField="value"
-  placeholder="Select State"
-  value={state}
-  onChange={item => setState(item.value)}
+  placeholder="Select Gender"
+  value={gender}
+  onChange={(item) => setGender(item.value)}
 />
-
-<View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 20 }}>
-  <Switch
-    value={isOver18}
-    onValueChange={setIsOver18}
-    trackColor={{ false: '#ccc', true: '#00796b' }}
-    thumbColor={isOver18 ? '#ffffff' : '#f4f3f4'}
-  />
-  <Text style={{ marginLeft: 8 }}>I confirm I am 18 or older</Text>
-</View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 20 }}>
+              <Switch
+                value={isOver18}
+                onValueChange={setIsOver18}
+                trackColor={{ false: '#ccc', true: '#00796b' }}
+                thumbColor={isOver18 ? '#ffffff' : '#f4f3f4'}
+              />
+              <Text style={{ marginLeft: 8 }}>I confirm I am 18 or older</Text>
+            </View>
 
           </>
         );
+  
+        case 5:
+  return (
+    <>
+      <TouchableOpacity style={styles.button} onPress={() => setTermsVisible(true)}>
+        <Text style={styles.buttonText}>View Terms & Privacy</Text>
+      </TouchableOpacity>
+
+      {hasAgreedToTerms && (
+        <Text style={{ color: '#00796b', marginTop: 10, textAlign: 'center' }}>
+          You've agreed to the Terms & Privacy Policy.
+        </Text>
+      )}
+    </>
+  );
+
+  case 6:
+  return (
+    <>
+      <TextInput
+        style={styles.input}
+        placeholder="Referral Code (Optional)"
+        value={referralCode}
+        onChangeText={setReferralCode}
+        placeholderTextColor="#888"
+      />
+    </>
+  );
+  
+      case 7:
+        return (
+          <>
+            <Text style={styles.heading}>Upload a Profile Photo</Text>
+            {profileImage && <Image source={{ uri: profileImage }} style={styles.imagePreview} />}
+            <TouchableOpacity style={styles.button} onPress={pickProfileImage}>
+              <Text style={styles.buttonText}>Choose from Gallery</Text>
+            </TouchableOpacity>
+          </>
+        );
+  
       default:
         return null;
+      
     }
+    
   };
-
-  const progress = ((step + 1) / 5) * 100;
-
   return (
+    <>
     <Animated.View style={[styles.container, { opacity: animation }]}>
       <View style={styles.progressContainer}>
-        <View style={[styles.progressFill, { width: `${progress}%` }]} />
+        <View style={[styles.progressFill, { width: `${((step + 1) / 8) * 100}%` }]} />
       </View>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.topBackButton}>
+        <Text style={styles.topBackButtonText}>← Back</Text>
+      </TouchableOpacity>
 
       <Text style={styles.heading}>Let’s get started</Text>
-      <Text style={styles.subheading}>Step {step + 1} of 5</Text>
-
+      <Text style={styles.subheading}>Step {step + 1} of 8</Text>
+  
       {renderStep()}
-
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
-        {step > 0 && (
-          <TouchableOpacity style={[styles.button, { flex: 1, marginRight: 10 }]} onPress={() => setStep(step - 1)}>
-            <Text style={styles.buttonText}>Back</Text>
-          </TouchableOpacity>
-        )}
-        {step < 4 && step !== 2 && (
-          <TouchableOpacity style={[styles.button, !codeSent && step === 1 && styles.buttonDisabled, { flex: 1 }]} onPress={() => setStep(step + 1)} disabled={step === 1 && !codeSent}>
-            <Text style={styles.buttonText}>Next</Text>
-          </TouchableOpacity>
-        )}
-        {step === 4 && (
-          <TouchableOpacity
-            style={[styles.button, !isStepComplete && styles.buttonDisabled, { flex: 1 }]}
-            onPress={handleNextStep}
-            disabled={!isStepComplete}
-          >
-            <Text style={styles.buttonText}>Continue</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+  
+      {renderFooter()}
     </Animated.View>
+
+<Modal visible={termsVisible} animationType="slide">
+<TermsScreen
+  onAgree={() => {
+    setHasAgreedToTerms(true);
+    setTermsVisible(false);
+  }}
+/>
+</Modal>
+</>
   );
 };
 
@@ -317,6 +486,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     marginBottom: 10,
   },
+  imagePreview: { width: 100, height: 100, borderRadius: 50, marginBottom: 15, alignSelf: 'center' },
+  topBackButton: {
+    marginBottom: 10,
+  },
+  topBackButtonText: {
+    color: '#00796b',
+    fontSize: 16,
+    fontWeight: 'bold',
+  }
   
 });
 

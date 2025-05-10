@@ -13,10 +13,11 @@ export const UserProvider = ({ children }) => {
       try {
         const tokenData = await AsyncStorage.getItem('tokenData');
         if (tokenData) {
-          const { token, expirationTime, firstName, profilePicture } = JSON.parse(tokenData);
-          if (Date.now() < expirationTime) {
-            setUser({ token, firstName, profilePicture });
-          } else {
+          const { id, token, expirationTime, firstName, profilePicture, trustScore } = JSON.parse(tokenData);
+        if (Date.now() < expirationTime) {
+          setUser({ id, token, firstName, profilePicture, trustScore });
+        }
+        else {
             await logout(); // Automatically log out if the token is expired
           }
         }
@@ -28,23 +29,30 @@ export const UserProvider = ({ children }) => {
     loadUserData();
   }, []);
 
-  const login = async (token, firstName, profilePicture, expiresIn) => {
+  const login = async (id, token, firstName, profilePicture, trustScore, expiresIn) => {
     try {
-      const expirationTime = Date.now() + expiresIn * 1000; // expiresIn is assumed to be in seconds
-      const tokenData = JSON.stringify({ token, expirationTime, firstName, profilePicture });
+      const expirationTime = Date.now() + expiresIn * 1000;
+      const tokenData = JSON.stringify({ id, token, expirationTime, firstName, profilePicture, trustScore });
       await AsyncStorage.setItem('tokenData', tokenData);
-      setUser({ token, firstName, profilePicture });
+      setUser({ id, token, firstName, profilePicture, trustScore });
     } catch (error) {
       console.error('Failed to save user data to AsyncStorage:', error);
     }
   };
+  
 
-  const logout = async () => {
+  const logout = async (navigation) => {
     try {
       setUser(null);
       await AsyncStorage.removeItem('tokenData');
+      if (navigation) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        });
+      }
     } catch (error) {
-      console.error('Failed to clear user data from AsyncStorage:', error);
+      console.error('Failed to log out:', error);
     }
   };
 

@@ -10,48 +10,86 @@ import {
   Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRoute } from '@react-navigation/native';
 
-const bills = [
-  {
-    id: 1,
-    amount: 6.43,
-    type: 'Wi-Fi Bill',
-    user: '@brokegrad',
-    state: 'Illinois',
-    date: 'Due April 22',
-    description: 'Keeping Wi-Fi alive for job interviews.',
-    reason: 'I just need a little help this week. Thank you 💙',
-    reward: 'Earn 1.2 Bill Credits',
-    icon: '📶',
-    profilePicture: require('../assets/logo.png'),
-  },
-  {
-    id: 2,
-    amount: 4.10,
-    type: 'Lunch Tab',
-    user: '@mealmate',
-    state: 'California',
-    date: 'Posted Apr 5',
-    description: 'Lunch with Grandma.',
-    reason: 'Every bit counts—I’m working 3 jobs right now.',
-    reward: '+1 Boost toward your Bill Cap',
-    icon: '🍔',
-    profilePicture: require('../assets/logo.png'),
-  },
-  {
-    id: 3,
-    amount: 2.99,
-    type: 'Spotify',
-    user: '@vibesonly',
-    state: 'New York',
-    date: 'Due April 18',
-    description: 'Spotify for daily commutes.',
-    reason: 'Trying to keep my cat entertained!',
-    reward: 'Earn 0.5 Bill Credits',
-    icon: '🎵',
-    profilePicture: require('../assets/logo.png'),
-  },
-];
+const StarterBills = () => {
+  const route = useRoute();
+  const addOns = route.params?.addOns;
+  const bill = route.params?.bill;
+
+  let displayBills = [
+    {
+      id: 1,
+      amount: 6.43,
+      type: 'Wi-Fi Bill',
+      user: '@brokegrad',
+      state: 'Illinois',
+      date: 'Due April 22',
+      description: 'Keeping Wi-Fi alive for job interviews.',
+      reason: 'I just need a little help this week. Thank you 💙',
+      reward: 'Earn 1.2 Bill Credits',
+      icon: '📶',
+      profilePicture: require('../assets/logo.png'),
+    },
+    {
+      id: 2,
+      amount: 4.10,
+      type: 'Lunch Tab',
+      user: '@mealmate',
+      state: 'California',
+      date: 'Posted Apr 5',
+      description: 'Lunch with Grandma.',
+      reason: 'Every bit counts—I’m working 3 jobs right now.',
+      reward: '+1 Boost toward your Bill Cap',
+      icon: '🍔',
+      profilePicture: require('../assets/logo.png'),
+    },
+    {
+      id: 3,
+      amount: 2.99,
+      type: 'Spotify',
+      user: '@vibesonly',
+      state: 'New York',
+      date: 'Due April 18',
+      description: 'Spotify for daily commutes.',
+      reason: 'Trying to keep my cat entertained!',
+      reward: 'Earn 0.5 Bill Credits',
+      icon: '🎵',
+      profilePicture: require('../assets/logo.png'),
+    },
+  ];
+
+  if (addOns?.publicPost && bill) {
+    displayBills.unshift({
+      id: 999,
+      amount: parseFloat(bill.amount_due),
+      type: bill.bill_type || 'Bill',
+      user: '@you',
+      state: 'Your State',
+      date: `Due ${bill.due_date}`,
+      description: 'Your bill was posted publicly.',
+      reason: 'You made this public to get matched faster!',
+      reward: 'Earn 1.5 Bill Credits',
+      icon: '🧾',
+      profilePicture: require('../assets/logo.png'),
+    });
+  }
+
+  return (
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      <Text style={styles.header}>Pick a Bill to Support</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.carousel}
+      >
+        {displayBills.map((bill) => (
+          <FlipCard key={bill.id} bill={bill} />
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
 
 const FlipCard = ({ bill }) => {
   const [flipped, setFlipped] = useState(false);
@@ -116,23 +154,6 @@ const FlipCard = ({ bill }) => {
         </Animated.View>
       </View>
     </TouchableOpacity>
-  );
-};
-
-const StarterBills = () => {
-  return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <Text style={styles.header}>Pick a Bill to Support</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.carousel}
-      >
-        {bills.map((bill) => (
-          <FlipCard key={bill.id} bill={bill} />
-        ))}
-      </ScrollView>
-    </SafeAreaView>
   );
 };
 

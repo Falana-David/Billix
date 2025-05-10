@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Dimensions,
   Modal,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -21,51 +22,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import axios from 'axios';
 
-const bills = [
-  {
-    id: 1,
-    amount: 6.43,
-    type: 'Wi-Fi Bill',
-    user: '@brokegrad',
-    state: 'Illinois',
-    date: 'Due April 22',
-    description: 'Keeping Wi-Fi alive for job interviews.',
-    reason: 'I just need a little help this week. Thank you 💙',
-    reward: 'Earn 1.2 Bill Credits',
-    trustGain: '+0.6 Trust Score',
-    icon: '📶',
-    profilePicture: require('../assets/logo.png'),
-  },
-  {
-    id: 2,
-    amount: 4.10,
-    type: 'Lunch Tab',
-    user: '@mealmate',
-    state: 'California',
-    date: 'Posted Apr 5',
-    description: 'Lunch with Grandma.',
-    reason: 'Every bit counts—I’m working 3 jobs right now.',
-    reward: '+1 Boost toward your Bill Cap',
-    trustGain: '+0.4 Trust Score',
-    icon: '🍔',
-    profilePicture: require('../assets/logo.png'),
-  },
-  {
-    id: 3,
-    amount: 2.99,
-    type: 'Spotify',
-    user: '@vibesonly',
-    state: 'New York',
-    date: 'Due April 18',
-    description: 'Spotify for daily commutes.',
-    reason: 'Trying to keep my cat entertained!',
-    reward: 'Earn 0.5 Bill Credits',
-    trustGain: '+0.2 Trust Score',
-    icon: '🎵',
-    profilePicture: require('../assets/logo.png'),
-  },
-];
-
 const stateOptions = [
   { label: 'All States', value: '' },
   { label: 'California', value: 'California' },
@@ -74,11 +30,16 @@ const stateOptions = [
 ];
 
 
-const FlipCard = ({ bill }) => {
+const FlipCard = ({ bill, setBills }) => {
     const [flipped, setFlipped] = useState(false);
     const [showTrustModal, setShowTrustModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const animatedValue = useRef(new Animated.Value(0)).current;
+    const [randomAmount] = useState(() => bill.display_price ?? 3.99);
+
+    const navigation = useNavigation();
+
+    
     // const { initPaymentSheet, presentPaymentSheet } = useStripe();
     const { user } = useContext(UserContext);
     const authToken = user?.token;
@@ -105,126 +66,68 @@ const FlipCard = ({ bill }) => {
     console.log('Auth Token:', authToken);
 
     const handlePayPress = async () => {
-        setLoading(true);
-        const amountInCents = Math.round(bill.amount * 100);
-        console.log('🟡 Initiating payment for:', {
-          amountInCents,
-          bill,
+      setLoading(true);
+      const amountInCents = Math.round(randomAmount * 100);
+    
+      try {
+        const token = await AsyncStorage.getItem('token');
+    
+        const response = await fetch('http://127.0.0.1:5000/payment-sheet', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            amount: amountInCents,
+            payee_id: bill.payee_id,  // Ensure this exists on the bill
+            swap_id: bill.swap_id,    // Ensure this exists on the bill
+            add_ons: {},              // Optional
+          }),
         });
-      
-        try {
-          const token = await AsyncStorage.getItem('token');
-          console.log('🟢 Retrieved token:', token);
-      
-          const paymentResponse = await fetch('http://127.0.0.1:5000/payment-sheet', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              amount: amountInCents,
-              payee_id: 2,
-              swap_id: 1,
-            }),
-          });
-      
-          if (!paymentResponse.ok) {
-            const errorData = await paymentResponse.json();
-            console.error('🔴 Payment sheet fetch failed:', errorData);
-            Alert.alert('Error', errorData?.error || 'Failed to get payment sheet');
-            setLoading(false);
-            return;
-          }
-      
-          const paymentSheetData = await paymentResponse.json();
-          const { paymentIntent, ephemeralKey, customer } = paymentSheetData;
-          console.log('🟢 Payment sheet data received:', paymentSheetData);
-      
-          const { error: initError } = await initPaymentSheet({
-            customerId: customer,
-            customerEphemeralKeySecret: ephemeralKey,
-            paymentIntentClientSecret: paymentIntent,
-            merchantDisplayName: 'Billix',
-            returnURL: 'billix://home',
-          });
-      
-          if (initError) {
-            console.error('🔴 initPaymentSheet error:', initError);
-            Alert.alert('Stripe Init Error', initError.message || 'Could not initialize payment sheet');
-            setLoading(false);
-            return;
-          }
-      
-          console.log('🟢 initPaymentSheet success, presenting sheet...');
-          const { error: presentError } = await presentPaymentSheet();
-      
-          if (presentError) {
-            console.error('🔴 presentPaymentSheet error:', presentError);
-            Alert.alert(`Payment failed`, presentError.message || 'Unknown error');
-          } else {
-            console.log('✅ Payment successful');
-            Alert.alert('✅ Payment successful!');
-          }
-      
-        } catch (error) {
-          console.error('❌ Exception during handlePayPress:', error);
-          Alert.alert('Unexpected error', error.message || 'Something went wrong');
-        } finally {
-          setLoading(false);
+        console.log("💡 Bill Data:", bill);
+        console.log("💰 Random Amount:", randomAmount);
+        console.log("👤 Payee ID:", bill.payee_id);
+        console.log("🔁 Swap ID:", bill.swap_id);
+        
+        if (!response.ok) {
+          const error = await response.json();
+          Alert.alert('Payment Error', error?.error || 'Could not load payment sheet.');
+          return;
         }
-      };
-      
-    // const handlePayPress = async () => {
-    //   try {
-    //     setLoading(true);
-    //     const amountInCents = Math.round(bill.amount * 100);
-  
-    //     const res = await axios.post(
-    //         'http://127.0.0.1:5000/payment-sheet',
-    //         {
-    //           amount: amountInCents,
-    //           payee_id: 2,      // 🔧 replace with actual bill owner
-    //           swap_id: 1        // 🔧 replace with the actual swap/bill ID
-    //         },
-    //         {
-    //           headers: {
-    //             Authorization: `Bearer ${authToken}`,
-    //             'Content-Type': 'application/json',
-    //           },
-    //         }
-    //       );
-          
-  
-    //     const { paymentIntent, ephemeralKey, customer } = res.data;
-    //     console.log(res.data)
-  
-    //     const init = await initPaymentSheet({
-    //       customerId: customer,
-    //       customerEphemeralKeySecret: ephemeralKey,
-    //       paymentIntentClientSecret: paymentIntent,
-    //       merchantDisplayName: 'Billix',
-    //       returnURL: 'billix://home' // and route that in your app to navigate to Home
-    //     });
-  
-    //     if (init.error) {
-    //       alert(init.error.message);
-    //       return;
-    //     }
-  
-    //     const result = await presentPaymentSheet();
-    //     if (result.error) {
-    //       alert(`Payment failed: ${result.error.message}`);
-    //     } else {
-    //       alert('✅ Payment successful!');
-    //     }
-    //   } catch (err) {
-    //     console.error('Payment error:', err);
-    //     alert('Something went wrong');
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
+    
+        const { paymentIntent, ephemeralKey, customer } = await response.json();
+    
+        const { error: initError } = await initPaymentSheet({
+          customerId: customer,
+          customerEphemeralKeySecret: ephemeralKey,
+          paymentIntentClientSecret: paymentIntent,
+          merchantDisplayName: 'Billix',
+          returnURL: 'billix://home',
+        });
+    
+        if (initError) {
+          Alert.alert('Stripe Init Error', initError.message || 'Could not initialize.');
+          return;
+        }
+    
+        const { error: presentError } = await presentPaymentSheet();
+    
+        if (presentError) {
+          Alert.alert('Payment Cancelled', presentError.message || 'Canceled.');
+        } else {
+          Alert.alert('Payment successful!');
+          navigation.navigate('Wheels');
+
+
+        }
+      } catch (error) {
+        Alert.alert('Unexpected Error', error.message || 'Something went wrong');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
   
     return (
       <TouchableOpacity onPress={handleFlip} activeOpacity={1}>
@@ -238,7 +141,15 @@ const FlipCard = ({ bill }) => {
             ]}
           >
             <View style={styles.topRow}>
-              <Image source={bill.profilePicture} style={styles.profileImageLarge} />
+            <Image
+  source={
+    typeof bill.profilePicture === 'number'
+      ? bill.profilePicture  // from require()
+      : { uri: bill.profilePicture } // from API
+  }
+  style={styles.profileImageLarge}
+/>
+
               <View style={styles.userDetails}>
                 <Text style={styles.user}>{bill.user}</Text>
                 <Text style={styles.state}>{bill.state}</Text>
@@ -247,7 +158,7 @@ const FlipCard = ({ bill }) => {
             </View>
   
             <View style={styles.cardContent}>
-              <Text style={styles.amount}>${bill.amount.toFixed(2)}</Text>
+              <Text style={styles.amount}>${randomAmount.toFixed(2)}</Text>
               <Text style={styles.type}>{bill.type}</Text>
               <Text style={styles.date}>{bill.date}</Text>
               <Text style={styles.description}>{bill.description}</Text>
@@ -269,6 +180,8 @@ const FlipCard = ({ bill }) => {
   ]}
 >
   <Text style={styles.reason}>{bill.reason}</Text>
+
+  <Text style={styles.amount}>Amount: ${randomAmount.toFixed(2)}</Text>
 
   <TouchableOpacity
     style={styles.payButton}
@@ -310,6 +223,45 @@ const FlipCard = ({ bill }) => {
 const StarterBills = () => {
   const navigation = useNavigation();
   const [selectedState, setSelectedState] = useState('');
+  const [bills, setBills] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  
+  useEffect(() => {
+    fetchBills();
+  }, []);
+
+  const fetchBills = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const res = await fetch('http://127.0.0.1:5000/public-bills', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const json = await res.json();
+      const billsWithPrice = (json.bills || []).map(bill => ({
+        ...bill,
+        display_price: bill.amount ?? 3.99,  // Use amount if it's coming from backend
+      }));
+      setBills(billsWithPrice);
+      
+    } catch (err) {
+      console.error('Failed to fetch bills:', err);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchBills();
+    setRefreshing(false);
+  };
+  const filteredBills = selectedState
+  ? bills.filter(b => b.state === selectedState)
+  : bills;
+
+
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -354,11 +306,17 @@ const StarterBills = () => {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.carousel}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
-        {bills.map((bill) => (
-          <FlipCard key={bill.id} bill={bill} />
-        ))}
+{filteredBills.map((bill, index) => (
+  <FlipCard key={`bill-${bill.id || index}`} bill={bill} setBills={setBills} />
+))}
+
+
       </ScrollView>
+
 
       <Text style={styles.swipeHint}>← Swipe to explore more bills →</Text>
 
@@ -635,5 +593,4 @@ const styles = StyleSheet.create({
       
   });
   
-
 export default StarterBills;

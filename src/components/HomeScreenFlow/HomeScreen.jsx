@@ -1,11 +1,15 @@
-import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, SafeAreaView, FlatList } from 'react-native';
+import React, { useState, useContext, useEffect} from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, SafeAreaView, FlatList, RefreshControl } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { UserContext } from '../UserContext';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const HomeScreen = () => {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const { user } = useContext(UserContext);
+  const [referralCode, setReferralCode] = useState('');
   const navigation = useNavigation();
 
   const getGreeting = () => {
@@ -16,26 +20,124 @@ const HomeScreen = () => {
   const handleImagePress = (label) => {
     if (label === 'Share Bill') navigation.navigate('StarterBill');
     else if (label === 'Swap Bill') navigation.navigate('Upload');
-    else if (label === 'Chat') navigation.navigate('ChatScreen');
+    else if (label === 'ChatListScreen') navigation.navigate('ChatListScreen');
     else if (label === 'Funding') navigation.navigate('FundingScreen');
     else if (label === 'FAQ') navigation.navigate('FAQScreen');
     else if (label === 'Vote') navigation.navigate('DailyVoteScreen');
+    else if (label === 'Pending') navigation.navigate('Pending');
+    else if (label === 'Active') navigation.navigate('Active');
+    else if (label === 'MyCompleted') navigation.navigate('MyCompleted');
+    else if (label === 'BillSharesScreen') navigation.navigate('BillSharesScreen');
+    else if (label === 'HelpScreen') navigation.navigate('HelpScreen');
     else console.log(`${label} pressed`);
   };
   
+  const handleInvitePress = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const res = await fetch('http://127.0.0.1:5000/generate-referral', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+  
+      const data = await res.json();
+      if (res.ok && data.code) {
+        setReferralCode(data.code);
+        Clipboard.setString(data.code);
+        alert(`Invite code ${data.code} copied to clipboard!`);
+      } else {
+        alert(data.message || 'Unable to generate referral code.');
+      }
+    } catch (err) {
+      console.error('Referral error:', err);
+      alert('Something went wrong. Please try again.');
+    }
+  };
+  
+  
 
   const [currentPage, setCurrentPage] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+
+    // Simulate fetching user data or bill data
+    setTimeout(() => {
+      // Ideally, call any data fetching here
+      setRefreshing(false);
+    }, 1000);
+  };
+
 
   const featureButtons = [
-    { label: 'Chat', icon: require('../assets/chat-button-home.png') },
+    { label: 'ChatListScreen', icon: require('../assets/chat-button-home.png') },
     { label: 'Funding', icon: require('../assets/funding-button-home.png') },
     { label: 'FAQ', icon: require('../assets/faq-button-home.png') },
     { label: 'Vote', icon: require('../assets/voting-button-home.png') },
   ];
 
+  const readAlongSteps = [
+    "👋 Welcome to Billix! This is your profile section. You can manage trust, verification, and see your overall identity.",
+    "📊 View your bill activity using the collapsible dropdown labeled 'Bill Activity'.",
+    "⭐ This is your Trust Score. Higher scores unlock faster matches and better rewards.",
+    "🧾 Use the Share Bill button to explore public bills and earn reward spins for helping.",
+    "🔁 The Swap Bill button lets you post your own bills and get help from others!",
+  ];
+  
+  const [currentStep, setCurrentStep] = useState(0);
+  const [showReadAlong, setShowReadAlong] = useState(false);
+  
+  useEffect(() => {
+    const checkIfFirstTime = async () => {
+      // Wait briefly to ensure AsyncStorage has been written from SignUp
+      await new Promise((res) => setTimeout(res, 500)); // short delay
+  
+      const seen = await AsyncStorage.getItem('hasSeenReadAlong');
+      if (seen === 'false') {
+        setShowReadAlong(true);
+        await AsyncStorage.setItem('hasSeenReadAlong', 'true'); // mark as seen
+      }
+    };
+  
+    checkIfFirstTime();
+  }, []);
+  
+  
+  const handleNextStep = () => {
+    if (currentStep < readAlongSteps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      setShowReadAlong(false);
+    }
+  };
+  
+
   return (
     <SafeAreaView style={styles.safeArea}>
-     <ScrollView contentContainerStyle={styles.mainWrapper}>
+      {showReadAlong && (
+  <View style={styles.readAlongOverlay}>
+    <View style={styles.readAlongBox}>
+      <Text style={styles.readAlongText}>{readAlongSteps[currentStep]}</Text>
+      <TouchableOpacity onPress={handleNextStep}>
+        <Text style={styles.readAlongButton}>
+          {currentStep === readAlongSteps.length - 1 ? 'Done' : 'Next'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+)}
+
+
+     <ScrollView
+      contentContainerStyle={styles.mainWrapper}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      }
+    >
 
 {/* PROFILE HEADER */}
 <View style={styles.profileContainer}>
@@ -47,15 +149,22 @@ const HomeScreen = () => {
     <Text style={styles.userName}>{getGreeting()}, {user?.firstName || 'Ronald Richards'}</Text>
     <Text style={styles.dateText}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</Text>
     <View style={styles.badgeRow}>
-      <View style={[styles.badge, { backgroundColor: '#b9e7c9' }]}>
-        <Text style={[styles.badgeText, { color: '#287d42' }]}>★ 4.5 / 5</Text>
-      </View>
+    <TouchableOpacity
+  style={[styles.badge, { backgroundColor: '#b9e7c9' }]}
+  onPress={() => navigation.navigate('TrustScoreScreen')}
+>
+  <Text style={[styles.badgeText, { color: '#287d42' }]}>
+    ★ {user?.trustScore ? user.trustScore.toFixed(2) : '4.50'} / 5
+  </Text>
+</TouchableOpacity>
+
+
       <View style={[styles.badge, { backgroundColor: '#e0f5e7' }]}>
         <Text style={[styles.badgeText, { color: '#3d8b3d' }]}>Verified</Text>
       </View>
     </View>
     {/* Replaced bell icon with a custom green version */}
-    <Image source={require('../assets/Frame.png')} style={styles.bellIcon} />
+    {/* <Image source={require('../assets/Frame.png')} style={styles.bellIcon} /> */}
   </View>
 </View>
 
@@ -66,15 +175,15 @@ const HomeScreen = () => {
 </TouchableOpacity>
 {!isCollapsed && (
   <View style={styles.sectionContainer}>
-    <TouchableOpacity onPress={() => handleImagePress('Pending')}>
-      <Image source={require('../assets/pending.png')} style={styles.billImage} />
+    <TouchableOpacity onPress={() => handleImagePress('Active')}>
+      <Image source={require('../assets/active.png')} style={styles.billImage} />
     </TouchableOpacity>
-    <TouchableOpacity onPress={() => handleImagePress('Completed')}>
+    <TouchableOpacity onPress={() => handleImagePress('MyCompleted')}>
       <Image source={require('../assets/completed.png')} style={styles.billImageSmall} />
     </TouchableOpacity>
-    <TouchableOpacity onPress={() => handleImagePress('Active')}>
+    {/* <TouchableOpacity onPress={() => handleImagePress('Active')}>
       <Image source={require('../assets/active.png')} style={styles.billImageSmall} />
-    </TouchableOpacity>
+    </TouchableOpacity> */}
   </View>
 )}
 
@@ -90,44 +199,43 @@ const HomeScreen = () => {
   </View>
 </View>
 
-{/* Row 3 */}
+{/* Row 3 – Exchange Bills */}
 <View style={styles.sectionContainer}>
   <View style={styles.singleCtaRow}>
-    {/* <TouchableOpacity style={styles.singleCtaBoxLarge}> */}
+    <TouchableOpacity onPress={() => handleImagePress('BillSharesScreen')}>
       <Image source={require('../assets/exchange-bills.png')} style={styles.ctaIconDoubleRow} />
-    {/* </TouchableOpacity> */}
+    </TouchableOpacity>
   </View>
 </View>
 
-{/* Row 4 */}
+{/* Row 4 – Bill Shares */}
 <View style={styles.sectionContainer}>
   <View style={styles.singleCtaRow}>
-    {/* <TouchableOpacity style={styles.singleCtaBoxLarge}> */}
+    <TouchableOpacity onPress={() => handleImagePress('HelpScreen')}>
       <Image source={require('../assets/learn_more.png')} style={styles.ctaIconSingleRow} />
-    {/* </TouchableOpacity> */}
+    </TouchableOpacity>
   </View>
 </View>
+
 
 {/* REVIEW */}
-<View style={styles.reviewRow}>
-  <View style={styles.reviewHeader}>
-    <Text style={styles.reviewHeaderText}>Review</Text>
-    <Image source={require('../assets/logo.png')} style={styles.reviewProfilePic} />
+{/* REVIEW SECTION */}
+{/* REVIEW SECTION */}
+<View style={styles.reviewCard}>
+  <View style={styles.reviewCardHeader}>
+    <Text style={styles.reviewCardTitle}>Write a Review</Text>
+    <Image source={require('../assets/logo.png')} style={styles.reviewCardIcon} />
   </View>
-  <Text style={styles.reviewText}>
-    “Great design and super easy to use—managing finances has never been simpler!”
-  </Text>
-  <View style={styles.reviewFooter}>
-    <View style={styles.reviewRating}>
-      <Image source={require('../assets/star.png')} style={styles.starIcon} />
-      <Text style={styles.reviewRatingText}>4.5</Text>
-    </View>
-    <View style={styles.reviewNav}>
-      <Text style={styles.navArrow}>{"<"}</Text>
-      <Text style={styles.navArrow}>{">"}</Text>
-    </View>
-  </View>
+  <Text style={styles.reviewCardSubtext}>Tell us how Billix is helping you or share ideas to make it even better.</Text>
+  <TouchableOpacity
+    style={styles.reviewButton}
+    onPress={() => navigation.navigate('WriteReviewScreen')}
+  >
+    <Text style={styles.reviewButtonText}>Write a Review</Text>
+  </TouchableOpacity>
 </View>
+
+
 
 {/* FEATURE CAROUSEL */}
 <View style={[styles.sectionContainer, styles.featureCarouselWrapper]}>
@@ -158,16 +266,25 @@ const HomeScreen = () => {
 </View>
 
 {/* REFER A FRIEND */}
+{/* REFER A FRIEND */}
 <View style={styles.referContainer}>
   <Image source={require('../assets/logo.png')} style={styles.referImage} />
   <Text style={styles.referTitle}>Refer a Friend</Text>
   <Text style={styles.referText}>
     Invite your friends and earn bill credits when they join and help others!
   </Text>
-  <TouchableOpacity style={styles.referButton}>
+
+  <TouchableOpacity style={styles.referButton} onPress={handleInvitePress}>
     <Text style={styles.referButtonText}>Invite Now</Text>
   </TouchableOpacity>
+
+  {referralCode && (
+    <Text style={{ marginTop: 10, color: '#3A7542' }}>
+      Your Code: <Text style={{ fontWeight: 'bold' }}>{referralCode}</Text>
+    </Text>
+  )}
 </View>
+
 
 
 </ScrollView>
@@ -242,6 +359,7 @@ const styles = StyleSheet.create({
   collapsibleHeader: {
     backgroundColor: '#ffffff',
     padding: 12,
+    marginTop: 10,
     borderRadius: 12,
     elevation: 2,
     alignItems: 'center',
@@ -306,7 +424,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaIconSingleRow: {
-    width: 380,
+    width: 350,
     height: 141,
     resizeMode: 'contain',
   },
@@ -326,49 +444,75 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   
-  
-  reviewRow: {
-    width: '100%',
+  reviewCard: {
     backgroundColor: '#ffffff',
-    padding: 16,
+    padding: 20,
     borderRadius: 16,
-    marginBottom: 20,
+    marginVertical: 20,
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    width: '100%',
   },
-  reviewHeader: {
+  
+  reviewCardHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 10,
   },
-  reviewHeaderText: {
-    fontSize: 15,
+  
+  reviewCardTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#3A7542',
   },
-  reviewProfilePic: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  
+  reviewCardIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    resizeMode: 'contain',
   },
-  reviewText: {
+  
+  reviewCardSubtext: {
     fontSize: 14,
-    marginVertical: 10,
-    color: '#44684B',
+    color: '#4A7C59',
+    marginBottom: 16,
     lineHeight: 20,
+    textAlign: 'left',
   },
-  reviewFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  reviewRating: {
-    flexDirection: 'row',
+  
+  reviewButton: {
+    backgroundColor: '#4A7C59',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
     alignItems: 'center',
   },
-  reviewRatingText: {
+  
+  reviewButtonText: {
+    color: '#ffffff',
     fontSize: 15,
-    marginLeft: 4,
-    color: '#4A7C59',
     fontWeight: '600',
   },
+  
+  readAlongText: {
+    fontSize: 15,
+    color: '#333',
+    marginBottom: 10,
+    lineHeight: 20,
+  },
+  
+  readAlongButton: {
+    textAlign: 'right',
+    color: '#4A7C59',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  
   starIcon: {
     width: 18,
     height: 18,
@@ -449,6 +593,33 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 15,
   },
+  readAlongOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    justifyContent: 'flex-end',
+    paddingBottom: 20,
+    zIndex: 999,
+  },
+  readAlongBox: {
+    position: 'absolute',
+    bottom: 20,
+    left: 16,
+    right: 16,
+    backgroundColor: '#f0f0f0', // ← Light grey
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 999,
+  },
+  
   
   
 });
