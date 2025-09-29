@@ -2,123 +2,121 @@ import React, { useEffect, useState, useContext } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
-  Linking,
   RefreshControl,
+  StyleSheet,
+  SafeAreaView,
   Platform,
 } from 'react-native';
 import axios from 'axios';
 import { UserContext } from '../../UserContext';
-import { useNavigation } from '@react-navigation/native';
 import Collapsible from 'react-native-collapsible';
+import { useNavigation } from '@react-navigation/native';
 
 const MyCompleted = () => {
   const { user } = useContext(UserContext);
-  const [completedSwaps, setCompletedSwaps] = useState([]);
+  const navigation = useNavigation();
+  const [insights, setInsights] = useState([]);
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const navigation = useNavigation();
 
-  const fetchCompleted = async () => {
+  const fetchInsights = async () => {
     try {
-      const res = await axios.get('http://127.0.0.1:5000/user-swaps', {
+      const res = await axios.get('http://127.0.0.1:5000/free-insights', {
         headers: { Authorization: `Bearer ${user?.token}` },
       });
-
-      const completed = res.data.swaps.filter(
-        swap =>
-          ['proof_submitted', 'confirmed', 'completed'].includes(swap.status) &&
-          (swap.user_a_id === user?.id || swap.user_b_id === user?.id)
-      );
-
-      setCompletedSwaps(completed);
+      setInsights(res.data?.insights || []);
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to load completed swaps.');
     }
   };
 
   useEffect(() => {
-    if (user?.token) {
-      fetchCompleted();
-    }
+    if (user?.token) fetchInsights();
   }, [user]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchCompleted();
+    await fetchInsights();
     setRefreshing(false);
   };
 
-  const toggleExpand = index => {
-    setExpandedIndex(expandedIndex === index ? null : index);
+  const toggleExpand = (index) => {
+    setExpandedIndex(index === expandedIndex ? null : index);
   };
 
   return (
-    <View style={styles.wrapper}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5FDF6' }}>
+      <View style={styles.headerWrapper}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Text style={styles.backText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.header}>Your Free Insight Reports</Text>
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.container}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
         overScrollMode={Platform.OS === 'android' ? 'never' : 'auto'}
-        scrollIndicatorInsets={{ right: 1 }}
       >
-        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← Back to Home</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.header}>Your Completed Swaps</Text>
-
-        {completedSwaps.length === 0 ? (
-          <Text style={styles.noSwaps}>You haven't completed any swaps yet.</Text>
+        {insights.length === 0 ? (
+          <Text style={styles.empty}>No insights found yet.</Text>
         ) : (
-          completedSwaps.map((swap, index) => {
-            const isOpen = expandedIndex === index;
+          insights.map((insight, index) => {
+            const open = index === expandedIndex;
             return (
-              <View key={swap.id} style={styles.card}>
-                <TouchableOpacity
-                  onPress={() => toggleExpand(index)}
-                  style={styles.cardHeader}
-                >
-                  <Text style={styles.cardTitle}>Swap #{swap.id}</Text>
-                  <Text style={styles.arrow}>{isOpen ? '▲' : '▼'}</Text>
+              <View key={insight.id || index} style={styles.card}>
+                <TouchableOpacity onPress={() => toggleExpand(index)} style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>
+                    {insight.provider || 'Unknown Provider'} – {insight.bill_type}
+                  </Text>
+                  <Text style={styles.arrow}>{open ? '▲' : '▼'}</Text>
                 </TouchableOpacity>
 
-                <Collapsible collapsed={!isOpen}>
-                  <View style={styles.cardBody}>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Your Role:</Text>
-                      <Text style={styles.infoValue}>{swap.role}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>You Paid:</Text>
-                      <Text style={styles.infoValue}>${swap.user1_bill_amount?.toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Bill Type:</Text>
-                      <Text style={styles.infoValue}>{swap.user1_bill_type}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Due Date:</Text>
-                      <Text style={styles.infoValue}>{swap.user1_bill_due_date}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Billix Due Date:</Text>
-                      <Text style={styles.infoValue}>{swap.billix_due_date}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Status:</Text>
-                      <Text style={styles.infoValue}>{swap.status.replace('_', ' ')}</Text>
-                    </View>
+                <Collapsible collapsed={!open}>
+                  <View style={styles.detailBox}>
+                    <Text style={styles.label}>Due Date:</Text>
+                    <Text style={styles.text}>{insight.due_date || '—'}</Text>
 
-                    {swap.proof_file_url && (
-                      <TouchableOpacity onPress={() => Linking.openURL(swap.proof_file_url)}>
-                        <Text style={styles.linkText}>View Uploaded Proof</Text>
-                      </TouchableOpacity>
+                    <Text style={styles.label}>Status:</Text>
+                    <Text style={styles.text}>{insight.status || '—'}</Text>
+
+                    <Text style={styles.label}>Explanation:</Text>
+                    <Text style={styles.text}>{insight.explanation || '—'}</Text>
+
+                    <Text style={styles.label}>Action Plan:</Text>
+                    {(insight.action_plan || []).map((step, i) => (
+                      <Text key={i} style={styles.bullet}>• {step}</Text>
+                    ))}
+
+                    {insight.fees?.length > 0 && (
+                      <>
+                        <Text style={styles.label}>Flagged Charges:</Text>
+                        {insight.fees.map((fee, i) => (
+                          <View key={i} style={styles.feeRow}>
+                            <Text style={styles.feeTitle}>{fee.fee_name || '—'}:</Text>
+                            <Text style={styles.feeAmount}>${fee.amount || '—'}</Text>
+                            <Text style={styles.feeNote}>{fee.note || ''}</Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
+
+                    {insight.community_tip && (
+                      <>
+                        <Text style={styles.label}>Community Tip:</Text>
+                        <Text style={styles.text}>{insight.community_tip}</Text>
+                      </>
+                    )}
+
+                    {insight.billix_fairness_insight && (
+                      <>
+                        <Text style={styles.label}>Billix Fairness Insight:</Text>
+                        <Text style={styles.text}>{insight.billix_fairness_insight}</Text>
+                      </>
                     )}
                   </View>
                 </Collapsible>
@@ -127,97 +125,105 @@ const MyCompleted = () => {
           })
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-    backgroundColor: '#F5FDF6', // Prevents gray flash on pull
-  },
-  container: {
-    paddingTop: 60,
-    paddingBottom: 30,
+  headerWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 20,
+    paddingBottom: 10,
     paddingHorizontal: 20,
+    backgroundColor: '#F5FDF6',
+    position: 'relative',
   },
-  backBtn: {
-    alignSelf: 'flex-start',
-    marginBottom: 10,
+  backButton: {
+    position: 'absolute',
+    left: 20,
+    top: 20,
   },
-  backBtnText: {
+  backText: {
+    fontSize: 16,
     color: '#1A4D72',
     fontWeight: '600',
-    fontSize: 16,
   },
   header: {
-    fontSize: 26,
+    fontSize: 20,
     fontWeight: '700',
     color: '#1A4D72',
     textAlign: 'center',
-    marginBottom: 20,
   },
-  noSwaps: {
-    fontSize: 16,
-    color: '#666',
+  container: {
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  empty: {
     textAlign: 'center',
-    marginTop: 30,
+    marginTop: 40,
+    color: '#777',
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
+    borderRadius: 16,
+    padding: 14,
     marginBottom: 16,
-    borderLeftWidth: 6,
     borderLeftColor: '#4CAF50',
+    borderLeftWidth: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#2D4F45',
-    textTransform: 'capitalize',
+    color: '#1C3D2E',
   },
   arrow: {
     fontSize: 18,
     color: '#4CAF50',
   },
-  cardBody: {
+  detailBox: {
     marginTop: 12,
-    backgroundColor: '#F7FCF9',
+    backgroundColor: '#F0F8F2',
     borderRadius: 10,
     padding: 12,
   },
-  infoRow: {
-    marginBottom: 6,
+  label: {
+    fontWeight: '700',
+    color: '#2E7D32',
+    marginTop: 10,
   },
-  infoLabel: {
-    color: '#888',
-    fontSize: 13,
-    fontWeight: '500',
-    textTransform: 'capitalize',
+  text: {
+    color: '#333',
+    marginTop: 2,
   },
-  infoValue: {
-    color: '#2F5D4A',
-    fontSize: 15,
+  bullet: {
+    color: '#444',
+    marginTop: 4,
+    marginLeft: 6,
+  },
+  feeRow: {
+    marginTop: 6,
+  },
+  feeTitle: {
     fontWeight: '600',
-    textTransform: 'capitalize',
+    color: '#000',
   },
-  linkText: {
-    color: '#007BFF',
-    fontSize: 14,
-    textDecorationLine: 'underline',
-    marginTop: 8,
+  feeAmount: {
+    color: '#2E7D32',
+  },
+  feeNote: {
+    fontSize: 13,
+    color: '#666',
   },
 });
 

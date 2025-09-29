@@ -8,23 +8,28 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const SignUpScreen = ({ navigation }) => {
   const [step, setStep] = useState(1);
   const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
+  const [lastName,  setLastName]  = useState('');
+  const [email,     setEmail]     = useState('');
+  const [phone,     setPhone]     = useState('');
+  const [password,  setPassword]  = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isOver18, setIsOver18] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isOver18,  setIsOver18]  = useState(false);
+  const [loading,   setLoading]   = useState(false);
   const [referralCode, setReferralCode] = useState('');
-  const [state, setState] = useState('');
+  const [state,     setState]     = useState('');
   const [profileImage, setProfileImage] = useState(null);
-  const [gender, setGender] = useState('');
+  const [gender,    setGender]    = useState('');
   const [birthdate, setBirthdate] = useState('');
 
+  // ✅ NEW: ZIP state
+  const [zip, setZip] = useState('');
 
   const handleNextStep = async () => {
     setLoading(true);
     try {
+      // normalize zip to first 5 digits (adjust key to what your backend expects: zip, zip5, zip_code, etc.)
+      const zip5 = zip.replace(/\D/g, '').slice(0, 5) || null;
+
       const response = await fetch('http://127.0.0.1:5000/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -37,16 +42,18 @@ const SignUpScreen = ({ navigation }) => {
           state,
           gender,
           birthdate,
+          zip5,                 // ✅ include normalized ZIP
           referral_code: referralCode,
           profile_picture: profileImage, 
         }),
       });
-      console.log("profileImage sending:", profileImage?.substring(0, 100));
 
+      console.log('profileImage sending:', profileImage?.substring(0, 100));
       const data = await response.json();
+
       if (response.ok) {
         await AsyncStorage.setItem('hasSeenReadAlong', 'false');
-        await AsyncStorage.setItem('token', data.token); // ✅ Make sure data.token exists!
+        await AsyncStorage.setItem('token', data.token);
         navigation.replace('Home');
       } else {
         alert(data.message || 'Signup failed');
@@ -57,7 +64,6 @@ const SignUpScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
-  
 
   return (
     <View style={styles.container}>
@@ -71,35 +77,40 @@ const SignUpScreen = ({ navigation }) => {
       <Text style={styles.title}>Create Your Billix Account</Text>
 
       {step === 1 && (
-      <SignUpBasicInfo
-        firstName={firstName}
-        lastName={lastName}
-        email={email}
-        password={password}
-        confirmPassword={confirmPassword}
-        phone={phone}
-        isOver18={isOver18}
-        state={state}
-        gender={gender}
-        birthdate={birthdate}
-        referralCode={referralCode}
-        profileImage={profileImage}
-      
-        setFirstName={setFirstName}
-        setLastName={setLastName}
-        setEmail={setEmail}
-        setPhone={setPhone}
-        setPassword={setPassword}
-        setConfirmPassword={setConfirmPassword}
-        setIsOver18={setIsOver18}
-        setState={setState}
-        setGender={setGender}
-        setBirthdate={setBirthdate}
-        setReferralCode={setReferralCode}
-        setProfileImage={setProfileImage}
-      
-        handleNextStep={handleNextStep}
-      />
+        <SignUpBasicInfo
+          firstName={firstName}
+          lastName={lastName}
+          email={email}
+          password={password}
+          confirmPassword={confirmPassword}
+          phone={phone}
+          isOver18={isOver18}
+          state={state}
+          gender={gender}
+          birthdate={birthdate}
+          referralCode={referralCode}
+          profileImage={profileImage}
+
+          // setters
+          setFirstName={setFirstName}
+          setLastName={setLastName}
+          setEmail={setEmail}
+          setPhone={setPhone}
+          setPassword={setPassword}
+          setConfirmPassword={setConfirmPassword}
+          setIsOver18={setIsOver18}
+          setState={setState}
+          setGender={setGender}
+          setBirthdate={setBirthdate}
+          setReferralCode={setReferralCode}
+          setProfileImage={setProfileImage}
+
+          // ✅ pass ZIP props so child won't be undefined
+          zip={zip}
+          setZip={setZip}
+
+          handleNextStep={handleNextStep}
+        />
       )}
     </View>
   );
@@ -126,10 +137,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
   },
-  logo: {
-    width: 120,
-    height: 120,
-  },
+  logo: { width: 120, height: 120 },
   title: {
     fontSize: 28,
     fontWeight: 'bold',

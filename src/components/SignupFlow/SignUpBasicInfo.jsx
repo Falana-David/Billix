@@ -18,7 +18,6 @@ import { Buffer } from 'buffer';
 import TermsScreen from '../HomeScreenFlow/Profile_Information/TermsScreen';
 import { useNavigation } from '@react-navigation/native';
 
-
 const US_STATES = [
   'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
   'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa',
@@ -41,10 +40,27 @@ const toBase64 = async (uri) => {
   });
 };
 
+// ── NEW: helpers for ZIP ──────────────────────────────────────────────────────
+const validateZip = (z) => {
+  if (!z) return false;
+  const v = z.trim();
+  return /^\d{5}$/.test(v) || /^\d{5}-\d{4}$/.test(v); // 5 or ZIP+4
+};
+
+const formatZip = (text) => {
+  // allow digits and one optional hyphen for ZIP+4
+  const digits = text.replace(/\D/g, '').slice(0, 9); // up to 9 digits
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+};
+
 const SignUpBasicInfo = ({
   firstName, lastName, email, password, confirmPassword, phone,
   isOver18, gender, setGender, setFirstName, setLastName, setEmail, setPassword,
-  setConfirmPassword, setPhone, setIsOver18, handleNextStep, profileImage, setProfileImage
+  setConfirmPassword, setPhone, setIsOver18, handleNextStep, profileImage, setProfileImage,
+  referralCode, setReferralCode,
+  // ── NEW: add these two props from parent ──
+  zip, setZip,
 }) => {
 
   const [animation] = useState(new Animated.Value(0));
@@ -54,13 +70,12 @@ const SignUpBasicInfo = ({
   const [verifying, setVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState('');
   const [state, setState] = useState('');
-  const [referralCode, setReferralCode] = useState('');
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
+  const [zipError, setZipError] = useState(''); // ── NEW
   const navigation = useNavigation();
   const [termsVisible, setTermsVisible] = useState(false);
   const [hasAgreedToTerms, setHasAgreedToTerms] = useState(false);
-  
 
   useEffect(() => {
     Animated.timing(animation, {
@@ -95,11 +110,10 @@ const SignUpBasicInfo = ({
       if (res.assets?.length > 0) {
         const uri = res.assets[0].uri;
         const base64 = await toBase64(uri);
-        setProfileImage(base64); 
+        setProfileImage(base64);
       }
     });
   };
-  
 
   const isPasswordValid = () =>
     password.length >= 6 &&
@@ -108,7 +122,6 @@ const SignUpBasicInfo = ({
     /[@$!%*#?&]/.test(password) &&
     password === confirmPassword;
 
-    
   const sendCode = async () => {
     const cleaned = phone.replace(/\D/g, '');
     try {
@@ -159,15 +172,16 @@ const SignUpBasicInfo = ({
     }
   };
 
+  // ── UPDATED: require ZIP at step 4 ──────────────────────────────────────────
   const stepChecks = [
-    () => firstName && lastName,
-    () => validateEmail(email) && isPhoneValid() && !emailError && !phoneError && codeSent,
-    () => code.length > 0,
-    () => isPasswordValid(),
-    () => state && isOver18,
-    () => hasAgreedToTerms,
-    () => true,
-    () => true,
+    () => firstName && lastName,                                  // 0
+    () => validateEmail(email) && isPhoneValid() && !emailError && !phoneError && codeSent, // 1
+    () => code.length > 0,                                        // 2
+    () => isPasswordValid(),                                      // 3
+    () => state && isOver18 && validateZip(zip) && !zipError,     // 4  <-- ZIP added
+    () => hasAgreedToTerms,                                       // 5
+    () => true,                                                   // 6
+    () => true,                                                   // 7
   ];
 
   const handleNext = async () => {
@@ -181,7 +195,6 @@ const SignUpBasicInfo = ({
       handleNextStep();
     }
   };
-  
 
   const renderFooter = () => (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
@@ -221,48 +234,47 @@ const SignUpBasicInfo = ({
             />
           </>
         );
-  
+
       case 1:
         return (
           <>
             <TextInput
-  style={styles.input}
-  placeholder="Email"
-  value={email}
-  onChangeText={(val) => {
-    const trimmed = val.trim().toLowerCase();
-    setEmail(trimmed);
-    if (!validateEmail(trimmed)) {
-      setEmailError('Please enter a valid email address');
-    } else {
-      setEmailError('');
-    }
-  }}
-  keyboardType="email-address"
-  placeholderTextColor="#888"
-/>
-{emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={(val) => {
+                const trimmed = val.trim().toLowerCase();
+                setEmail(trimmed);
+                if (!validateEmail(trimmed)) {
+                  setEmailError('Please enter a valid email address');
+                } else {
+                  setEmailError('');
+                }
+              }}
+              keyboardType="email-address"
+              placeholderTextColor="#888"
+            />
+            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
-<TextInput
-  style={styles.input}
-  placeholder="Phone Number"
-  value={phone}
-  onChangeText={(text) => {
-    const formatted = formatPhone(text);
-    setPhone(formatted);
-    setCodeSent(false);
-    if (!validatePhoneUS(formatted)) {
-      setPhoneError('Enter a valid 10-digit US phone number');
-    } else {
-      setPhoneError('');
-    }
-  }}
-  keyboardType="phone-pad"
-  placeholderTextColor="#888"
-/>
-{phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
+            <TextInput
+              style={styles.input}
+              placeholder="Phone Number"
+              value={phone}
+              onChangeText={(text) => {
+                const formatted = formatPhone(text);
+                setPhone(formatted);
+                setCodeSent(false);
+                if (!validatePhoneUS(formatted)) {
+                  setPhoneError('Enter a valid 10-digit US phone number');
+                } else {
+                  setPhoneError('');
+                }
+              }}
+              keyboardType="phone-pad"
+              placeholderTextColor="#888"
+            />
+            {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
 
-  
             <TouchableOpacity
               style={[styles.button, !isPhoneValid() && styles.buttonDisabled]}
               onPress={sendCode}
@@ -272,7 +284,7 @@ const SignUpBasicInfo = ({
             </TouchableOpacity>
           </>
         );
-  
+
       case 2:
         return (
           <>
@@ -287,41 +299,40 @@ const SignUpBasicInfo = ({
             {verificationError ? <Text style={styles.errorText}>{verificationError}</Text> : null}
           </>
         );
-  
+
       case 3:
         return (
           <>
-<TextInput
-  style={styles.input}
-  placeholder="Password"
-  value={password}
-  onChangeText={setPassword}
-  secureTextEntry
-  autoCapitalize="none"
-  autoCorrect={false}
-  textContentType="newPassword"
-  placeholderTextColor="#888"
-/>
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="newPassword"
+              placeholderTextColor="#888"
+            />
 
-<TextInput
-  style={styles.input}
-  placeholder="Confirm Password"
-  value={confirmPassword}
-  onChangeText={setConfirmPassword}
-  secureTextEntry
-  autoCapitalize="none"
-  autoCorrect={false}
-  textContentType="newPassword"
-  placeholderTextColor="#888"
-/>
-
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="newPassword"
+              placeholderTextColor="#888"
+            />
 
             <Text style={{ marginTop: 5, color: '#888' }}>
               Password Strength: {passwordStrength}
             </Text>
           </>
         );
-  
+
       case 4:
         return (
           <>
@@ -334,19 +345,41 @@ const SignUpBasicInfo = ({
               value={state}
               onChange={(item) => setState(item.value)}
             />
-                        <Dropdown
-  style={styles.dropdown}
-  data={[
-    { label: 'Male', value: 'male' },
-    { label: 'Female', value: 'female' },
-    { label: 'Other', value: 'other' },
-  ]}
-  labelField="label"
-  valueField="value"
-  placeholder="Select Gender"
-  value={gender}
-  onChange={(item) => setGender(item.value)}
-/>
+
+            {/* ── NEW: ZIP input ───────────────────────────── */}
+            <TextInput
+              style={styles.input}
+              placeholder="ZIP Code (e.g., 12345 or 12345-6789)"
+              value={zip}
+              onChangeText={(text) => {
+                const formatted = formatZip(text);
+                setZip(formatted);
+                if (!validateZip(formatted)) {
+                  setZipError('Enter a valid US ZIP (12345 or 12345-6789)');
+                } else {
+                  setZipError('');
+                }
+              }}
+              keyboardType="number-pad"
+              maxLength={10} // 12345-6789
+              placeholderTextColor="#888"
+            />
+            {zipError ? <Text style={styles.errorText}>{zipError}</Text> : null}
+
+            <Dropdown
+              style={styles.dropdown}
+              data={[
+                { label: 'Male', value: 'male' },
+                { label: 'Female', value: 'female' },
+                { label: 'Other', value: 'other' },
+              ]}
+              labelField="label"
+              valueField="value"
+              placeholder="Select Gender"
+              value={gender}
+              onChange={(item) => setGender(item.value)}
+            />
+
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 20 }}>
               <Switch
                 value={isOver18}
@@ -356,38 +389,37 @@ const SignUpBasicInfo = ({
               />
               <Text style={{ marginLeft: 8 }}>I confirm I am 18 or older</Text>
             </View>
-
           </>
         );
-  
-        case 5:
-  return (
-    <>
-      <TouchableOpacity style={styles.button} onPress={() => setTermsVisible(true)}>
-        <Text style={styles.buttonText}>View Terms & Privacy</Text>
-      </TouchableOpacity>
 
-      {hasAgreedToTerms && (
-        <Text style={{ color: '#00796b', marginTop: 10, textAlign: 'center' }}>
-          You've agreed to the Terms & Privacy Policy.
-        </Text>
-      )}
-    </>
-  );
+      case 5:
+        return (
+          <>
+            <TouchableOpacity style={styles.button} onPress={() => setTermsVisible(true)}>
+              <Text style={styles.buttonText}>View Terms & Privacy</Text>
+            </TouchableOpacity>
 
-  case 6:
-  return (
-    <>
-      <TextInput
-        style={styles.input}
-        placeholder="Referral Code (Optional)"
-        value={referralCode}
-        onChangeText={setReferralCode}
-        placeholderTextColor="#888"
-      />
-    </>
-  );
-  
+            {hasAgreedToTerms && (
+              <Text style={{ color: '#00796b', marginTop: 10, textAlign: 'center' }}>
+                You've agreed to the Terms & Privacy Policy.
+              </Text>
+            )}
+          </>
+        );
+
+      case 6:
+        return (
+          <>
+            <TextInput
+              style={styles.input}
+              placeholder="Referral Code (Optional)"
+              value={referralCode}
+              onChangeText={setReferralCode}
+              placeholderTextColor="#888"
+            />
+          </>
+        );
+
       case 7:
         return (
           <>
@@ -398,40 +430,39 @@ const SignUpBasicInfo = ({
             </TouchableOpacity>
           </>
         );
-  
+
       default:
         return null;
-      
     }
-    
   };
+
   return (
     <>
-    <Animated.View style={[styles.container, { opacity: animation }]}>
-      <View style={styles.progressContainer}>
-        <View style={[styles.progressFill, { width: `${((step + 1) / 8) * 100}%` }]} />
-      </View>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.topBackButton}>
-        <Text style={styles.topBackButtonText}>← Back</Text>
-      </TouchableOpacity>
+      <Animated.View style={[styles.container, { opacity: animation }]}>
+        <View style={styles.progressContainer}>
+          <View style={[styles.progressFill, { width: `${((step + 1) / 8) * 100}%` }]} />
+        </View>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.topBackButton}>
+          <Text style={styles.topBackButtonText}>← Back</Text>
+        </TouchableOpacity>
 
-      <Text style={styles.heading}>Let’s get started</Text>
-      <Text style={styles.subheading}>Step {step + 1} of 8</Text>
-  
-      {renderStep()}
-  
-      {renderFooter()}
-    </Animated.View>
+        <Text style={styles.heading}>Let’s get started</Text>
+        <Text style={styles.subheading}>Step {step + 1} of 8</Text>
 
-<Modal visible={termsVisible} animationType="slide">
-<TermsScreen
-  onAgree={() => {
-    setHasAgreedToTerms(true);
-    setTermsVisible(false);
-  }}
-/>
-</Modal>
-</>
+        {renderStep()}
+
+        {renderFooter()}
+      </Animated.View>
+
+      <Modal visible={termsVisible} animationType="slide">
+        <TermsScreen
+          onAgree={() => {
+            setHasAgreedToTerms(true);
+            setTermsVisible(false);
+          }}
+        />
+      </Modal>
+    </>
   );
 };
 
@@ -495,7 +526,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   }
-  
 });
 
 export default SignUpBasicInfo;

@@ -1,17 +1,41 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, Dimensions, Alert, RefreshControl
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Dimensions,
+  Alert,
+  RefreshControl,
+  SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { launchImageLibrary } from 'react-native-image-picker';
 import * as Progress from 'react-native-progress';
 import { Buffer } from 'buffer';
-import logo from '../../assets/logo.png'; // Update the path as necessary
+import logo from '../../assets/logo.png';
 
+const screenWidth = Dimensions.get('window').width;
 
-const screenWidth = Dimensions.get("window").width;
+/* ---------------- Theme (Billix) ---------------- */
+const COLORS = {
+  appBg: '#EAF6F0',
+  surface: '#FFFFFF',
+  primary: '#1F8A6E',
+  primaryDark: '#176C57',
+  primarySoft: '#E8F7F2',
+  outline: '#DDEBE3',
+  text: '#0B1C15',
+  textSubtle: '#5B6A61',
+  danger: '#D92D20',
+};
 
+const RADII = { sm: 10, md: 14, lg: 18, xl: 24, full: 999 };
+const SPACING = { xs: 6, sm: 10, md: 14, lg: 18, xl: 24 };
+
+/* ---------------- Utils ---------------- */
 const convertImageToBase64 = async (uri) => {
   const response = await fetch(uri);
   const blob = await response.blob();
@@ -19,109 +43,91 @@ const convertImageToBase64 = async (uri) => {
   return `data:image/jpeg;base64,${Buffer.from(buffer).toString('base64')}`;
 };
 
+const formatDate = (isoLike) => {
+  if (!isoLike) return '';
+  try {
+    const d = new Date(isoLike);
+    if (Number.isNaN(d.getTime())) return '';
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${mm}/${dd}/${yyyy}`;
+  } catch {
+    return String(isoLike);
+  }
+};
 
+// get token from either 'token' or 'tokenData'
+const getAuthToken = async () => {
+  let token = await AsyncStorage.getItem('token');
+  if (!token) {
+    const td = await AsyncStorage.getItem('tokenData');
+    if (td) {
+      try {
+        token = JSON.parse(td)?.token ?? null;
+      } catch {
+        token = null;
+      }
+    }
+  }
+  return token;
+};
+
+/* ---------------- Component ---------------- */
 const ProfileScreen = ({ navigation }) => {
   const [profilePicture, setProfilePicture] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  // const [modalVisible, setModalVisible] = useState(false);
   const [points, setPoints] = useState(0);
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [state, setState] = useState('');
+  const [userState, setUserState] = useState(''); // renamed from "state"
   const [gender, setGender] = useState('');
   const [dob, setDob] = useState('');
   const [trustScore, setTrustScore] = useState(4.2);
   const [accountStatus, setAccountStatus] = useState('Active');
-  const [profileVersion, setProfileVersion] = useState(0);
-  const [activitySummary, setActivitySummary] = useState({
-    bills_helped: 0,
-    bills_posted: 0,
-    total_value_helped: 0,
-    trust_streak: 0
-  });
-  
 
-  const [impactData, setImpactData] = useState({ total_uploaded: 0, total_helped: 0 });
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchProfileData();
-    await fetchImpactData();
-    await fetchActivitySummary();
     setRefreshing(false);
   };
-  
-  const fetchImpactData = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token || token.split('.').length < 3) {
-        console.error("❌ Invalid or missing token");
-        return;
-      }
-      const response = await fetch('http://127.0.0.1:5000/billix-impact', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const text = await response.text();
-      console.log('Raw response:', text);
-      if (!response.ok) throw new Error(`API Error ${response.status}: ${text}`);
-      const data = JSON.parse(text);
-      setImpactData(data);
-    } catch (error) {
-      console.error('Error fetching impact data:', error);
-    }
-  };
-  
-  const fetchActivitySummary = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const res = await fetch('http://127.0.0.1:5000/billix-activity-summary', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const text = await res.text();
-      const data = JSON.parse(text);
-      setActivitySummary(data);
-    } catch (err) {
-      console.error('Failed to fetch activity summary:', err);
-    }
-  };
-  
+
   const fetchProfileData = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
+      if (!token) {
+        console.warn('No token found; cannot fetch /profile');
+        return;
+      }
       const response = await fetch('http://127.0.0.1:5000/profile', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       });
-  
       const text = await response.text();
       if (response.ok) {
         const data = JSON.parse(text);
-        setFirstName(data.first_name);
-        setLastName(data.last_name);
-        setEmail(data.email);
+        setFirstName(data.first_name || '');
+        setLastName(data.last_name || '');
+        setEmail(data.email || '');
         setPhone(data.phone_number || '');
-        setState(data.state || '');
+        setUserState((data.state ?? '').toString());
         setGender(data.gender || '');
-        setDob(data.dob || '');
+        setDob(formatDate(data.dob ?? ''));
         setPoints(data.points || 0);
-        setTrustScore(data.trust_score || 4.2);
+        setTrustScore(
+          typeof data.trust_score === 'number'
+            ? data.trust_score
+            : (data.trust_score ? Number(data.trust_score) : 4.2)
+        );
         setProfilePicture(
           data.profile_picture?.startsWith('data:')
             ? data.profile_picture
-            : `data:image/jpeg;base64,${data.profile_picture}`
+            : data.profile_picture
+            ? `data:image/jpeg;base64,${data.profile_picture}`
+            : null
         );
       } else {
         console.error('Failed to fetch profile data:', text);
@@ -131,58 +137,47 @@ const ProfileScreen = ({ navigation }) => {
     }
   };
 
+  // Profile completeness (simple heuristic)
+  const completeness = [
+    firstName, lastName, email, phone, userState, gender, dob, profilePicture,
+  ].filter(Boolean).length / 8;
 
-  const impactPercentage = impactData.total_uploaded
-    ? (impactData.total_helped / impactData.total_uploaded)
-    : 0;
-
-    useEffect(() => {
-      fetchImpactData();
-    }, []);
-    
-    useEffect(() => {
-      fetchActivitySummary();
-    }, []);
-    
-    useEffect(() => {
-      fetchProfileData();
-    }, []);
+  useEffect(() => { fetchProfileData(); }, []);
 
   const uploadProfilePicture = async (base64) => {
-    console.log('📡 Starting uploadProfilePicture');
-  
     try {
-      const token = await AsyncStorage.getItem('token');
-      console.log('🔐 Token:', token ? '[exists]' : '❌ MISSING');
-  
+      setUploading(true);
+      const token = await getAuthToken();
+      if (!token) {
+        Alert.alert('Not signed in', 'Please log in again.');
+        return false;
+      }
       const cleanedBase64 = base64.includes(',') ? base64.split(',')[1] : base64;
-      console.log('📦 Payload size:', cleanedBase64.length);
-      console.log('🌐 Ready to fetch with body length:', JSON.stringify({ profile_picture: cleanedBase64 }).length);
-
       const res = await fetch('http://127.0.0.1:5000/update-profile-picture', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ profile_picture: cleanedBase64 }),
       });
-  
       const resText = await res.text();
-      console.log('📬 Response status:', res.status, resText);
-      return res.ok;
+      if (!res.ok) throw new Error(resText);
+      return true;
     } catch (err) {
-      console.error('🔥 Upload ERROR:', err.message);
+      console.error('Upload ERROR:', err.message);
+      Alert.alert('Upload failed', 'Please try a smaller image or check your connection.');
       return false;
+    } finally {
+      setUploading(false);
     }
   };
-
 
   const choosePhotoFromLibrary = () => {
     launchImageLibrary(
       {
         mediaType: 'photo',
-        includeBase64: true, // 🔥 this is the key
+        includeBase64: true,
         maxWidth: 800,
         maxHeight: 800,
         quality: 0.7,
@@ -192,282 +187,314 @@ const ProfileScreen = ({ navigation }) => {
           const base64Image = `data:${response.assets[0].type};base64,${response.assets[0].base64}`;
           setProfilePicture(base64Image);
           const success = await uploadProfilePicture(base64Image);
-          if (success) {
-            await fetchProfileData();
-          }
-        } else {
-          console.warn('Image picker cancelled or failed');
+          if (success) await fetchProfileData();
         }
       }
-    );    
+    );
   };
-  
 
   const handleLogout = async () => {
     await AsyncStorage.removeItem('token');
-    Alert.alert("Logout", "You have been logged out.", [
-      { text: "OK", onPress: () => navigation.replace('Login') }
+    await AsyncStorage.removeItem('tokenData');
+    Alert.alert('Logout', 'You have been logged out.', [
+      { text: 'OK', onPress: () => navigation.replace('Login') },
     ]);
   };
 
   const imageSource =
-  profilePicture && profilePicture.startsWith('data:image/')
-    ? { uri: profilePicture } // don't append `?v=` to base64
-    : logo;
+    profilePicture && profilePicture.startsWith('data:image/')
+      ? { uri: profilePicture }
+      : logo;
 
+  const QuickButton = ({ label, onPress, variant = 'primary' }) => {
+    const base = [styles.quickButtonBase];
+    if (variant === 'primary') base.push(styles.quickButtonPrimary);
+    if (variant === 'secondary') base.push(styles.quickButtonSecondary);
+    if (variant === 'outline') base.push(styles.quickButtonOutline);
+    const textStyle = [styles.quickText, variant === 'outline' ? { color: COLORS.primaryDark } : { color: '#fff' }];
+    return (
+      <TouchableOpacity style={base} onPress={onPress} activeOpacity={0.85}>
+        <Text style={textStyle}>{label}</Text>
+      </TouchableOpacity>
+    );
+  };
 
+  const Section = ({ title, children, right }) => (
+    <View style={styles.section}>
+      {(title || right) && (
+        <View style={styles.sectionHead}>
+          {title ? <Text style={styles.sectionTitle}>{title}</Text> : <View />}
+          {right || null}
+        </View>
+      )}
+      {children}
+    </View>
+  );
+
+  const ItemRow = ({ label, value }) => (
+    <View style={styles.itemRow}>
+      <Text style={styles.itemLabel}>{label}</Text>
+      <Text style={styles.itemValue} numberOfLines={1}>{value}</Text>
+    </View>
+  );
+
+  const onOpenStatic = (title) => {
+    navigation.navigate('StaticPage', {
+      title,
+      body:
+        title === 'Privacy'
+          ? 'Our Privacy Policy explains what data Billix collects, how we use it, and the choices you have.'
+          : title === 'Legal'
+          ? 'These Terms govern your use of Billix, including acceptable use, limitations of liability, and dispute resolution.'
+          : 'Need help? Contact support@billix.app or check our in-app FAQs for common questions.',
+    });
+  };
+
+  /* ---------------- Render ---------------- */
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safe}>
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#4a9040"
-          />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={COLORS.primary} />}
       >
+        {/* Hero / Header */}
+        <View style={styles.hero}>
+          <View style={styles.heroTopRow}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={styles.greeting}>Welcome back</Text>
+              <Text style={styles.userName} numberOfLines={1}>
+                {firstName || 'John'} {lastName || 'Doe'}
+              </Text>
 
-        <View style={styles.headerSection}>
-          <View>
-            <Text style={styles.userName}>{firstName || 'John'} {lastName || 'Doe'}</Text>
-            <View style={styles.badgeRow}>
-              <View style={[styles.badge, { backgroundColor: '#b9e7c9' }]}>
-                <Text style={[styles.badgeText, { color: '#287d42' }]}>★ {trustScore.toFixed(2)} / 5</Text>
-              </View>
-              <View style={[styles.badge, { backgroundColor: '#e0f5e7' }]}>
-                <Text style={[styles.badgeText, { color: '#3d8b3d' }]}>Verified</Text>
+              {/* Badges: trust, verified, and STATE */}
+              <View style={styles.badgeRow}>
+                <View style={[styles.badge, { backgroundColor: COLORS.primarySoft }]}>
+                  <Text style={[styles.badgeText, { color: COLORS.primaryDark }]}>★ {Number(trustScore || 0).toFixed(2)} / 5</Text>
+                </View>
+                <View style={[styles.badge, { backgroundColor: '#EAF6EF' }]}>
+                  <Text style={[styles.badgeText, { color: COLORS.primaryDark }]}>Verified</Text>
+                </View>
+                {!!userState && (
+                  <View style={[styles.badge, { backgroundColor: '#EEF8F2' }]}>
+                    <Text style={[styles.badgeText, { color: COLORS.primaryDark }]}>
+                      {String(userState).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
+
+            <TouchableOpacity onPress={choosePhotoFromLibrary} activeOpacity={0.9} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <View style={styles.avatarWrap}>
+                <Image style={styles.avatar} source={imageSource} />
+                <Text style={styles.editAvatar}>Edit</Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
-          <TouchableOpacity onPress={choosePhotoFromLibrary}>
-  <Image style={styles.avatar} source={imageSource} />
-  {uploading && <Text style={styles.uploadingText}>Uploading...</Text>}
-</TouchableOpacity>
-
-
+          {/* Trust meter + points */}
+          <View style={styles.heroMeters}>
+            <View style={styles.meterBlock}>
+              <Text style={styles.meterLabel}>Trust</Text>
+              <Progress.Bar progress={Math.min(1, (Number(trustScore || 0) / 5))} width={null} height={8} color={COLORS.primary} unfilledColor={COLORS.outline} borderWidth={0} />
+            </View>
+            <View style={styles.heroChip}>
+              <Text style={styles.heroChipText}>{points} pts</Text>
+            </View>
+          </View>
         </View>
 
+        {/* Quick Actions (removed "My Bills") */}
         <View style={styles.quickActionsRow}>
-  <TouchableOpacity
-    style={styles.quickButtonPrimary}
-    onPress={() => navigation.navigate('HelpScreen')}
-  >
-    <Text style={styles.quickText}>Help</Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity
-    style={styles.quickButtonSecondary}
-    onPress={() => navigation.navigate('AccountControlsScreen')}
-  >
-    <Text style={styles.quickText}>Account Controls</Text>
-  </TouchableOpacity>
-</View>
-
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Overview</Text>
-          <Text style={styles.itemText}>Name: {firstName || 'John'} {lastName || 'Doe'}</Text>
-          <Text style={styles.itemText}>Email: {email || 'you@email.com'}</Text>
-          <Text style={styles.itemText}>Points: {points}</Text>
-          <Text style={styles.itemText}>Account Status: {accountStatus}</Text>
+          <QuickButton label="Edit Profile" onPress={() => navigation.navigate('AccountControlsScreen')} variant="primary" />
+          <QuickButton label="Help" onPress={() => onOpenStatic('Support')} variant="outline" />
         </View>
 
-        <View style={styles.section}>
-        <View style={{ alignItems: 'center', marginTop: 16 }}>
-          <Progress.Circle
-            progress={impactPercentage}
-            size={150}
-            thickness={10}
-            color="#4a9040"
-            unfilledColor="#d6eadf"
-            borderWidth={0}
-            showsText={true}
-            formatText={() => `${Math.round(impactPercentage * 100)}%`}
-            textStyle={{ fontWeight: 'bold', fontSize: 18 }}
-          />
-          <Text style={{ marginTop: 10, fontWeight: '600', fontSize: 15, color: '#333' }}>
-            Bills You've Helped Cover
-          </Text>
-        </View>
-        </View>
+        {/* Profile completeness */}
+        <Section
+          title="Profile Completeness"
+          right={<Text style={styles.sectionRightText}>{Math.round(completeness * 100)}%</Text>}
+        >
+          <Progress.Bar progress={completeness} width={null} height={10} color={COLORS.primary} unfilledColor={COLORS.outline} borderWidth={0} />
+          <Text style={styles.completionHint}>Complete your profile to improve trust and unlock perks.</Text>
+        </Section>
 
-        <View style={styles.section}>
-        <View style={styles.section}>
-  <Text style={styles.sectionTitle}>Billix Activity Summary</Text>
+        {/* Account Overview */}
+        <Section title="Account Overview">
+          <ItemRow label="Name" value={`${firstName || 'John'} ${lastName || 'Doe'}`} />
+          <ItemRow label="Email" value={email || 'you@email.com'} />
+          <ItemRow label="Phone" value={phone || '—'} />
+          {/* <ItemRow label="State" value={userState || '—'} /> */}
+          <ItemRow label="Gender" value={gender || '—'} />
+          {/* <ItemRow label="Date of Birth" value={dob || '—'} /> */}
+          <ItemRow label="Account Status" value={accountStatus} />
+        </Section>
 
-  <View style={styles.statsRow}>
-    <View style={styles.statCard}>
-      <Text style={styles.statTitle}>Bills Helped</Text>
-      <Text style={styles.statValue}>{activitySummary.bills_helped}</Text>
-    </View>
-    <View style={styles.statCard}>
-      <Text style={styles.statTitle}>Bills Posted</Text>
-      <Text style={styles.statValue}>{activitySummary.bills_posted}</Text>
-    </View>
-    <View style={styles.statCard}>
-      <Text style={styles.statTitle}>Total Value Helped</Text>
-      <Text style={styles.statValue}>${(activitySummary.total_value_helped ?? 0).toFixed(2)}</Text>
-
-    </View>
-  </View>
-  <View style={styles.trustRow}>
-    <Text style={styles.trustLabel}>Trust Streak</Text>
-    <Text style={styles.trustValue}>
-      {activitySummary.trust_streak} successful swaps in a row
-    </Text>
-  </View>
-</View>
-    </View>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Settings</Text>
-          {['Privacy', 'Support', 'Legal'].map((item, i) => (
-            <TouchableOpacity key={i} style={styles.linkItem}>
-              <Text style={styles.itemText}>{item}</Text>
+        {/* Links */}
+        <Section title="More">
+          {[
+            { key: 'Privacy', onPress: () => onOpenStatic('Privacy') },
+            { key: 'Legal', onPress: () => onOpenStatic('Legal') },
+            { key: 'Support', onPress: () => onOpenStatic('Support') },
+          ].map(({ key, onPress }) => (
+            <TouchableOpacity key={key} style={styles.linkItem} activeOpacity={0.7} onPress={onPress}>
+              <Text style={styles.itemText}>{key}</Text>
+              <Text style={styles.chev}>›</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </Section>
+
+        <View style={{ height: 100 }} />
       </ScrollView>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+      {/* Persistent Logout CTA */}
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.9}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
-
-    </View>
+    </SafeAreaView>
   );
 };
 
+/* ---------------- Styles ---------------- */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#e6f5e9' },
+  safe: { flex: 1, backgroundColor: COLORS.appBg },
+
   scrollContainer: { paddingBottom: 160 },
-  headerSection: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 70, paddingBottom: 10,
+
+  /* Hero */
+  hero: {
+    backgroundColor: COLORS.surface,
+    marginHorizontal: SPACING.xl,
+    marginTop: SPACING.lg,
+    borderRadius: RADII.xl,
+    padding: SPACING.lg,
+    ...shadow(3),
   },
-  userName: { fontSize: 24, fontWeight: '700', color: '#1a1a1a' },
-  badgeRow: { flexDirection: 'row', marginTop: 6, flexWrap: 'wrap' },
+  heroTopRow: { flexDirection: 'row', alignItems: 'center' },
+  greeting: { color: COLORS.textSubtle, fontWeight: '700', marginBottom: 2 },
+  userName: { fontSize: 26, fontWeight: '900', color: COLORS.text, maxWidth: screenWidth - 170 },
+  badgeRow: { flexDirection: 'row', marginTop: 8, flexWrap: 'wrap' },
   badge: {
-    borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, marginRight: 8,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2,
+    borderRadius: RADII.md,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginRight: 8,
+    ...shadow(1),
   },
-  badgeText: { fontWeight: '600', fontSize: 13 },
+  badgeText: { fontWeight: '800', fontSize: 12, color: COLORS.text },
+  avatarWrap: { alignItems: 'center', justifyContent: 'center' },
   avatar: {
-    width: 64, height: 64, borderRadius: 32,
-    borderWidth: 2, borderColor: '#d0e7d8', backgroundColor: '#ccc'
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 2,
+    borderColor: COLORS.outline,
+    backgroundColor: '#cfd8d1',
   },
+  editAvatar: { marginTop: 6, fontSize: 12, fontWeight: '800', color: COLORS.primaryDark },
+
+  heroMeters: { flexDirection: 'row', alignItems: 'center', marginTop: 14 },
+  meterBlock: { flex: 1 },
+  meterLabel: { color: COLORS.textSubtle, fontSize: 12, fontWeight: '700', marginBottom: 6 },
+  heroChip: {
+    marginLeft: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADII.full,
+    backgroundColor: COLORS.primarySoft,
+    borderWidth: 1,
+    borderColor: COLORS.outline,
+  },
+  heroChipText: { color: COLORS.primaryDark, fontWeight: '900' },
+
+  /* Quick actions */
   quickActionsRow: {
-    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-evenly',
-    marginHorizontal: 20, marginTop: 12, marginBottom: 20
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginHorizontal: SPACING.xl,
+    marginTop: SPACING.md,
   },
-  quickButtonPrimary: {
-    backgroundColor: '#6db96d', paddingVertical: 10, borderRadius: 10, width: '45%', alignItems: 'center',
-  },
-  quickButtonSecondary: {
-    backgroundColor: '#4a9040', paddingVertical: 10, borderRadius: 10, width: '45%', alignItems: 'center',
-  },
-  quickButtonOutline: {
-    borderColor: '#4a9040', borderWidth: 1.5, paddingVertical: 10, borderRadius: 10, width: '45%', alignItems: 'center',
-  },
-  quickText: { fontWeight: '600', fontSize: 14, color: '#1a1a1a' },
-  section: {
-    backgroundColor: '#ffffff', marginHorizontal: 20, marginVertical: 10,
-    borderRadius: 16, padding: 16, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2
-  },
-  sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 8, color: '#222' },
-  itemText: { fontSize: 14, marginBottom: 6, color: '#333' },
-  linkItem: { paddingVertical: 10, borderBottomColor: '#eee', borderBottomWidth: 1 },
-  spendingButton: {
-    marginTop: 12, alignSelf: 'center', backgroundColor: '#f0fff0',
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-  },
-  spendingText: { color: '#4a9040', fontWeight: '600', fontSize: 15 },
-  logoutButton: {
-    position: 'absolute', bottom: 20, left: 20, right: 20,
-    backgroundColor: '#d9534f', paddingVertical: 15, borderRadius: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15, shadowRadius: 3, elevation: 3,
-  },
-  logoutText: { color: '#fff', fontWeight: '600', fontSize: 16, textAlign: 'center' },
-  modalContainer: {
-    flex: 1, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    width: '85%', backgroundColor: '#fff', padding: 20,
-    borderRadius: 15, alignItems: 'center',
-  },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 20 },
-  modalImage: { width: 80, height: 80, borderRadius: 40, marginHorizontal: 8, marginBottom: 10 },
-  uploadButton: {
-    marginTop: 10, backgroundColor: '#4a9040', paddingVertical: 10,
-    paddingHorizontal: 20, borderRadius: 8,
-  },
-  uploadText: { color: '#fff', fontWeight: '600' },
-  statsRow: {
-    gap: 12,
-    marginTop: 10,
-  },
-  
-  statCard: {
-    backgroundColor: '#f3fcf5',
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
+  quickButtonBase: {
+    borderRadius: RADII.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
-    flexDirection: 'column',
-    borderLeftWidth: 5,
-    borderLeftColor: '#4a9040',
+    flexGrow: 1,
+    minWidth: (screenWidth - SPACING.xl * 2 - 10) / 2,
+    ...shadow(1),
   },
-  
-  statTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#31733e',
-    marginBottom: 6,
+  quickButtonPrimary: { backgroundColor: COLORS.primary },
+  quickButtonSecondary: { backgroundColor: COLORS.primaryDark },
+  quickButtonOutline: { borderWidth: 1.5, borderColor: COLORS.primaryDark, backgroundColor: 'transparent' },
+  quickText: { fontWeight: '900', fontSize: 14 },
+
+  /* Sections */
+  section: {
+    backgroundColor: COLORS.surface,
+    marginHorizontal: SPACING.xl,
+    marginTop: SPACING.sm,
+    borderRadius: RADII.lg,
+    padding: SPACING.lg,
+    ...shadow(2),
   },
-  
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
+  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  sectionTitle: { fontSize: 17, fontWeight: '900', color: COLORS.text },
+  sectionRightText: { fontWeight: '900', color: COLORS.primaryDark },
+
+  completionHint: { marginTop: 8, color: COLORS.textSubtle, fontWeight: '600', fontSize: 12 },
+
+  /* Key-value rows */
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomColor: '#EEF2EF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  
-  trustRow: {
-    marginTop: 18,
+  itemLabel: { fontSize: 14, color: COLORS.textSubtle, fontWeight: '700' },
+  itemValue: { fontSize: 15, color: COLORS.text, marginLeft: 12, flexShrink: 1, textAlign: 'right', fontWeight: '700' },
+
+  itemText: { fontSize: 14, color: COLORS.text, fontWeight: '700' },
+  linkItem: {
+    paddingVertical: 14,
+    borderTopColor: '#EEF2EF',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  
-  trustLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#31733e',
-    marginBottom: 6,
-  },
-  
-  trustValue: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1a1a1a',
-  },
-  uploadingText: {
+  chev: { color: COLORS.textSubtle, fontSize: 20, marginLeft: 8 },
+
+  /* Logout */
+  logoutButton: {
     position: 'absolute',
-    top: 70,
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4a9040',
-  }
-  
-  
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: COLORS.danger,
+    paddingVertical: 15,
+    borderRadius: RADII.lg,
+    ...shadow(4),
+  },
+  logoutText: { color: '#fff', fontWeight: '900', fontSize: 16, textAlign: 'center', letterSpacing: 0.2 },
 });
+
+/* Consistent shadows */
+function shadow(level = 2) {
+  const elevation = Math.min(8, Math.max(1, level * 1.6));
+  const opacity = 0.06 + level * 0.01;
+  const radius = 3 + level * 1.6;
+  return {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 + level },
+    shadowOpacity: opacity,
+    shadowRadius: radius,
+    elevation,
+  };
+}
 
 export default ProfileScreen;

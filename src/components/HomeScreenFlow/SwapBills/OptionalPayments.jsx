@@ -1,3 +1,4 @@
+// OptionalPayments.js (Updated)
 import React, { useState, useContext } from 'react';
 import {
   View,
@@ -19,12 +20,20 @@ const OptionalPayments = () => {
   const { user } = useContext(UserContext);
 
   const [loading, setLoading] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [selectedAddOns, setSelectedAddOns] = useState({
-    insurance: false,
-    speedBoost: false,
-    publicPost: false,
+    powerReport: false, // <-- Power Report
+    boostSpeed: false,
+    postPublicly: false,
+    premiumCoPilot: false, // <-- Co-Piolt Acess
   });
-  
+  const [step, setStep] = useState(0);
+  const [billInfo, setBillInfo] = useState({
+    frequency: '',
+    urgent: '',
+    description: '',
+    visibility: '',
+  });
 
   const toggleAddOn = (type) => {
     setSelectedAddOns((prev) => ({ ...prev, [type]: !prev[type] }));
@@ -32,14 +41,13 @@ const OptionalPayments = () => {
 
   const getTotalAmount = () => {
     let total = 0;
-    if (selectedAddOns.insurance) total += 2.49;
-    if (selectedAddOns.speedBoost) total += 1.49;
-    if (selectedAddOns.publicPost) total += 3.99;
+    if (selectedAddOns.powerReport) total += 3.99;
+    if (selectedAddOns.boostSpeed) total += 1.49;
+    if (selectedAddOns.postPublicly) total += 0.00;
+    if (selectedAddOns.premiumCoPilot) total += 4.99; // <-- new price
     return total;
-  };
-  console.log('✅ route.params:', route.params);
-  console.log('✅ matchData:', matchData);
-  
+  };  
+
   const handleContinue = async () => {
     const totalAmount = getTotalAmount();
     const token = await AsyncStorage.getItem('token');
@@ -51,19 +59,15 @@ const OptionalPayments = () => {
       due_date: bill?.due_date || new Date().toISOString().split('T')[0],
     };
 
-    // If nothing selected, skip to match
     if (totalAmount === 0) {
-      console.log("✅ Skipping payment. Navigating with bill:", fullBill);
       navigation.navigate('FindMatches', { bill: fullBill, addOns: selectedAddOns });
       return;
     }
 
     if (!matchData?.payee_id) {
-        Alert.alert("Missing User Info", "Cannot proceed without user info.");
-        return;
-      }
-      
-      
+      Alert.alert('Missing User Info', 'Cannot proceed without user info.');
+      return;
+    }
 
     setLoading(true);
     const amountInCents = Math.round(totalAmount * 100);
@@ -115,7 +119,8 @@ const OptionalPayments = () => {
       }
 
       Alert.alert('Success', 'Your add-ons were successfully purchased!');
-      if (selectedAddOns.publicPost) {
+
+      if (selectedAddOns.postPublicly) {
         try {
           await fetch('http://127.0.0.1:5000/mark-public', {
             method: 'POST',
@@ -129,9 +134,8 @@ const OptionalPayments = () => {
           console.warn('Failed to mark bill public:', err);
         }
       }
-      
-      navigation.navigate('FindMatches', { bill: fullBill, addOns: selectedAddOns });
 
+      navigation.navigate('FindMatches', { bill: fullBill, addOns: selectedAddOns });
     } catch (error) {
       Alert.alert('Unexpected Error', error.message || 'Something went wrong');
     } finally {
@@ -153,37 +157,54 @@ const OptionalPayments = () => {
         </View>
       )}
 
-<TouchableOpacity
-  style={[
-    styles.card,
-    selectedAddOns.publicPost && styles.cardSelected,
-    styles.mostPopularCard,
-  ]}
-  onPress={() => toggleAddOn('publicPost')}
->
-  <View style={styles.cardBadge}>
-    <Text style={styles.cardBadgeText}>Most Popular</Text>
-  </View>
-  <Text style={styles.cardTitle}>Post Publicly</Text>
-  <Text style={styles.cardDesc}>Add your bill to the public feed. <Text style={styles.price}>$3.99</Text></Text>
-</TouchableOpacity>
-
-
+      {/* Power Report Upsell */}
       <TouchableOpacity
-        style={[styles.card, selectedAddOns.insurance && styles.cardSelected]}
-        onPress={() => toggleAddOn('insurance')}
+        style={[styles.card, selectedAddOns.powerReport && styles.cardSelected]}
+        onPress={() => toggleAddOn('powerReport')}
       >
-        <Text style={styles.cardTitle}>Bill Insurance</Text>
-        <Text style={styles.cardDesc}>Protect your swap in case it falls through. $2.49</Text>
+                <View style={styles.cardBadge}>
+          <Text style={styles.cardBadgeText}>Most Popular</Text>
+        </View>
+        <Text style={styles.cardTitle}>Unlock Power Report</Text>
+        <Text style={styles.cardDesc}>Get hidden trends, overcharges, and expert tactics. <Text style={styles.price}>$3.99</Text></Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.card, selectedAddOns.speedBoost && styles.cardSelected]}
-        onPress={() => toggleAddOn('speedBoost')}
+        style={[styles.card, selectedAddOns.boostSpeed && styles.cardSelected]}
+        onPress={() => toggleAddOn('boostSpeed')}
       >
-        <Text style={styles.cardTitle}>Boost Match Speed</Text>
-        <Text style={styles.cardDesc}>Get priority placement in our matching algorithm. $1.49</Text>
+        <Text style={styles.cardTitle}>Speed Boost</Text>
+        <Text style={styles.cardDesc}>Get priority matching and faster results. <Text style={styles.price}>$1.49</Text></Text>
       </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.card, selectedAddOns.postPublicly && styles.cardSelected, styles.mostPopularCard]}
+        onPress={() => toggleAddOn('postPublicly')}
+      >
+
+        <Text style={styles.cardTitle}>Post to Billix Feed</Text>
+        <Text style={styles.cardDesc}>Let others discover and support your bill. <Text style={styles.price}>$0.00</Text></Text>
+      </TouchableOpacity>
+
+      {/* Co-Pilot CTA */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Need Help Navigating?</Text>
+        <Text style={styles.cardDesc}>Get matched with a Billix Co-Pilot for free support. Premium Co-Pilots also available.</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('CoPilotRequest')}>
+          <Text style={styles.price}>Request Free Co-Pilot</Text>
+        </TouchableOpacity>
+        {/* <TouchableOpacity
+          style={[styles.card, selectedAddOns.premiumCoPilot && styles.cardSelected]}
+          onPress={() => toggleAddOn('premiumCoPilot')}
+        >
+          <Text style={styles.cardTitle}>Get Premium Co-Pilot</Text>
+          <Text style={styles.cardDesc}>
+            1-on-1 help from expert Billix Co-Pilots. Includes strategy, negotiation tips, and more.
+            <Text style={styles.price}> $4.99</Text>
+          </Text>
+        </TouchableOpacity> */}
+
+      </View>
 
       <TouchableOpacity style={styles.continueBtn} onPress={handleContinue} disabled={loading}>
         {loading ? (
@@ -196,6 +217,22 @@ const OptionalPayments = () => {
           </Text>
         )}
       </TouchableOpacity>
+        {showPremiumModal && (
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>Premium Co-Pilot Guidance</Text>
+        <Text style={styles.modalText}>
+          Get 1-on-1 help from our most experienced Billix Co-Pilots.
+          Premium Co-Pilots can assist with bill strategy, negotiation tips,
+          and long-term financial planning.
+        </Text>
+        <TouchableOpacity onPress={() => setShowPremiumModal(false)} style={styles.modalClose}>
+          <Text style={styles.modalCloseText}>Got it</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  )}
+
     </View>
   );
 };
@@ -299,7 +336,74 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2E7D32',
   },
-  
+  insightBox: {
+    backgroundColor: '#F8FFF7',
+    borderColor: '#4A7C59',
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  insightTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#4A7C59',
+    marginBottom: 8,
+  },
+  insightItem: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 4,
+  },
+  bold: {
+    fontWeight: '600',
+    color: '#1C3D2E',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    zIndex: 999,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    width: '100%',
+    maxWidth: 340,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#4A7C59',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalClose: {
+    backgroundColor: '#4A7C59',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignSelf: 'center',
+  },
+  modalCloseText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
 });
 
 export default OptionalPayments;

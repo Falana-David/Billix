@@ -1,309 +1,135 @@
-import React, { useEffect, useState, useContext } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  RefreshControl
-} from 'react-native';
-import axios from 'axios';
-import { UserContext } from '../../UserContext';
+// screens/SavedReports.jsx
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import HelpRequestModal from '../../HelpRequestModal';
+import { listSavedReports, removeSavedReport } from '../SwapBills/store/savedReports';
 
 const Active = () => {
-  const { user } = useContext(UserContext);
-  const [activeSwaps, setActiveSwaps] = useState([]);
-  const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
-  const commonIssues = [
-    "My partner hasn’t responded",
-    "The proof of payment looks fake",
-    "I uploaded proof but it’s not confirming",
-    "I want to cancel this swap",
-  ];
-  const [showHelpModal, setShowHelpModal] = useState(false);
-  const [currentSwapId, setCurrentSwapId] = useState(null);
-  
+  const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
 
-  const fetchActiveSwaps = async () => {
-    setRefreshing(true);
-    try {
-      const res = await axios.get('http://127.0.0.1:5000/user-swaps', {
-        headers: {
-          Authorization: `Bearer ${user?.token}`,
-        },
-      });
-      const ACTIVE_STATUSES = ['matched', 'accepted', 'proof_submitted'];
-      const active = res.data.swaps.filter(
-        swap =>
-          ACTIVE_STATUSES.includes(swap.status) &&
-          (swap.user_a_id == user.id || swap.user_b_id == user.id)
-      );
-      
-            setActiveSwaps(active);
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Failed to load active swaps.');
-    } finally {
-      setRefreshing(false);
-    }
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    const data = await listSavedReports();
+    setItems(data);
+    setLoading(false);
+  }, []);
+
+  React.useEffect(() => {
+    const unsub = navigation.addListener('focus', load);
+    return unsub;
+  }, [navigation, load]);
+
+  const openSnapshot = (it) => {
+    navigation.navigate('InsightReport', {
+      // open from local snapshot
+      insight: it.snapshot.insight,
+      actions: it.snapshot.actions,
+      scanConfidence: it.snapshot.scanConfidence,
+      billId: it.billId,
+      fromSaved: true,
+    });
   };
 
-  useEffect(() => {
-    if (user?.token) {
-      fetchActiveSwaps();
-    }
-  }, [user]);
-  
-
-  const handleConfirmReceived = (swapId) => {
-    Alert.alert(
-      'Confirm Bill Paid',
-      'Are you confirming that your bill was successfully paid by your partner?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Yes, Confirm',
-          onPress: async () => {
-            try {
-              await axios.post('http://127.0.0.1:5000/confirm-received', {
-                swap_id: swapId,
-              }, {
-                headers: {
-                  Authorization: `Bearer ${user?.token}`,
-                },
-              });
-              Alert.alert('Confirmed', 'Thanks! Your swap is now completed.');
-              setActiveSwaps((prev) => prev.filter(s => s.id !== swapId));
-            } catch (err) {
-                console.error('Confirm Error:', err.response?.data || err.message);
-                const message = err.response?.data?.error || 'Could not confirm receipt.';
-                Alert.alert('Error', message);
-            }
-          },
+  const confirmDelete = (billId) => {
+    Alert.alert('Delete saved report?', 'This removes your local copy (the server copy stays).', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await removeSavedReport(billId);
+          load();
         },
-      ]
+      },
+    ]);
+  };
+
+  const renderItem = ({ item }) => {
+    const insight = item.snapshot.insight || {};
+    return (
+      <View style={s.card}>
+        <Text style={s.title}>{insight.provider || 'Unknown Provider'}</Text>
+        <Text style={s.small}>
+          Amount: {insight.amount_due || '$0.00'} · Due: {insight.due_date || 'N/A'}
+        </Text>
+        <Text style={s.small}>Saved: {new Date(item.savedAt).toLocaleString()}</Text>
+
+        <View style={s.row}>
+          <TouchableOpacity style={s.btn} onPress={() => openSnapshot(item)}>
+            <Text style={s.btnText}>Open (Offline)</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.btn, s.btnOutline]}
+            onPress={() =>
+              navigation.navigate('BillSummaryPreview', {
+                refetchBillId: item.billId,
+              })
+            }
+          >
+            <Text style={[s.btnText, s.btnTextOutline]}>Refresh from Server</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.btn, s.btnDanger]} onPress={() => confirmDelete(item.billId)}>
+            <Text style={s.btnText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   };
 
+  if (loading) {
+    return (
+      <View style={s.container}>
+        <Text>Loading…</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={{ flex: 1, backgroundColor: '#E8F4FC' }}> 
-    <ScrollView contentContainerStyle={styles.container}
-        refreshControl={
-            <RefreshControl
-      refreshing={refreshing}
-      onRefresh={fetchActiveSwaps}
-    />
-      }>
-      <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backBtn}>
-        <Text style={styles.backBtnText}>← Back to Home</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.header}>Help You're Receiving</Text>
-
-      <TouchableOpacity
-        style={styles.contributionsBtn}
-        onPress={() => navigation.navigate('MyContributions')}
-      >
-        <Text style={styles.contributionsText}>→ View Bills You’re Covering</Text>
-      </TouchableOpacity>
-
-      {activeSwaps.length === 0 ? (
-        <Text style={styles.noSwaps}>You have no active swaps at the moment.</Text>
+    <View style={s.container}>
+      {items.length === 0 ? (
+        <Text style={s.empty}>No saved reports yet. Open a report and tap “Save Offline”.</Text>
       ) : (
-        activeSwaps.map((swap) => (
-          <View key={swap.id} style={styles.card}>
-            <Text style={styles.swapId}>Swap ID: {swap.id}</Text>
-            <Text style={styles.amount}>
-              Your Bill Being Covered: $
-              {(swap.user_a_id == user.id
-                ? swap.user1_bill_amount
-                : swap.user2_bill_amount
-              )?.toFixed(2)}
-            </Text>
-            <Text style={styles.dueDate}>
-            Your Bill Due: {swap.role === 'contributor' ? swap.user2_bill_due_date?.slice(0, 10) : swap.user1_bill_due_date?.slice(0, 10)}
-            </Text>
-
-            <Text style={styles.status}>STATUS: {swap.status.toUpperCase()}</Text>
-
-            <Text style={styles.tip}>
-              You’ve requested help. Your partner agreed to cover your bill.
-            </Text>
-
-            <View style={styles.instructions}>
-              <Text style={styles.instructionHeader}>Next Steps</Text>
-              <Text style={styles.instructionText}>• Wait for your partner to pay.</Text>
-              <Text style={styles.instructionText}>• Once paid, confirm it here.</Text>
-              <Text style={styles.instructionText}>• If payment fails, request help below.</Text>
-            </View>
-
-            <TouchableOpacity style={styles.confirmBtn} onPress={() => handleConfirmReceived(swap.id)}>
-              <Text style={styles.confirmText}>Confirm Bill Was Paid</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.chatBtn}
-              onPress={() => navigation.navigate('ChatScreen', {
-                swapId: swap.id,
-                partnerId: user.id === swap.user_a_id ? swap.user_b_id : swap.user_a_id
-              })}
-            >
-              <Text style={styles.chatText}> Chat With Partner</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-  style={styles.helpBtn}
-  onPress={() => {
-    setCurrentSwapId(swap.id);
-    setShowHelpModal(true);
-  }}
->
-  <Text style={styles.helpText}>Need Help from Billix?</Text>
-</TouchableOpacity>
-
-            <HelpRequestModal
-              visible={showHelpModal}
-              onClose={() => setShowHelpModal(false)}
-              swapId={currentSwapId}
-            />
-          </View>
-        ))
+        <FlatList
+          data={items}
+          keyExtractor={(it) => String(it.billId)}
+          renderItem={renderItem}
+          contentContainerStyle={{ padding: 16 }}
+        />
       )}
-    </ScrollView>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    // backgroundColor: '#E8F4FC',
-    // paddingTop: 50,
-    marginTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    flexGrow: 1,
-  },
-  backBtn: {
-    alignSelf: 'flex-start',
-    marginBottom: 10,
-  },
-  backBtnText: {
-    color: '#1A4D72',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  header: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#1A4D72',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  noSwaps: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 30,
-  },
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f5f7f9' },
+  empty: { padding: 24, textAlign: 'center', color: '#334' },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 24,
-    elevation: 3,
-  },
-  swapId: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333',
-  },
-  amount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#4A7C59',
-    marginVertical: 6,
-  },
-  dueDate: {
-    fontSize: 13,
-    color: '#A05C2D',
-    marginBottom: 4,
-  },
-  status: {
-    fontSize: 13,
-    color: '#777',
-    marginBottom: 6,
-  },
-  tip: {
-    fontSize: 13,
-    color: '#444',
-    fontStyle: 'italic',
-    marginBottom: 10,
-  },
-  instructions: {
-    backgroundColor: '#F1FAFF',
-    padding: 12,
-    borderRadius: 10,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e6ece9',
     marginBottom: 12,
   },
-  instructionHeader: {
-    fontWeight: '700',
-    color: '#1A4D72',
-    marginBottom: 6,
-  },
-  instructionText: {
-    fontSize: 13,
-    color: '#333',
-    marginBottom: 4,
-  },
-  confirmBtn: {
-    backgroundColor: '#B2E5D0',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  confirmText: {
-    color: '#004C3F',
-    fontWeight: '600',
-  },
-  chatBtn: {
-    backgroundColor: '#D0ECFF',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  chatText: {
-    color: '#004C8C',
-    fontWeight: '600',
-  },
-  helpBtn: {
-    backgroundColor: '#FFEFCC',
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  helpText: {
-    color: '#A05C2D',
-    fontWeight: '600',
-  },
-  contributionsBtn: {
-    alignSelf: 'center',
-    marginBottom: 20,
-    backgroundColor: '#D0ECFF',
+  title: { fontSize: 16, fontWeight: '700', color: '#123' },
+  small: { fontSize: 13, color: '#456', marginTop: 4 },
+  row: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' },
+  btn: {
+    backgroundColor: '#1c3a36',
     paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     borderRadius: 8,
   },
-  contributionsText: {
-    color: '#004C8C',
-    fontWeight: '600',
-    fontSize: 15,
+  btnDanger: { backgroundColor: '#b30000' },
+  btnOutline: {
+    backgroundColor: '#eaf1ef',
+    borderWidth: 1,
+    borderColor: '#b5ccc7',
   },
+  btnText: { color: '#fff', fontWeight: '700' },
+  btnTextOutline: { color: '#1c3a36' },
 });
 
 export default Active;

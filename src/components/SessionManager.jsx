@@ -14,6 +14,9 @@ import { UserContext } from './UserContext';
 const AUTO_LOGOUT_TIME = 14 * 60 * 1000; // 14 minutes
 const WARNING_TIME = 60 * 1000; // 1 minute
 
+// const AUTO_LOGOUT_TIME = 10 * 1000; // 10 seconds
+// const WARNING_TIME = 5 * 1000; // 5 seconds
+
 export const SessionManager = ({ children }) => {
   const navigation = useNavigation();
   const { logout } = useContext(UserContext);
@@ -24,27 +27,42 @@ export const SessionManager = ({ children }) => {
   const isLoggingOut = useRef(false);
 
   const resetTimers = () => {
+    console.log('🔁 Resetting timers');
     clearTimeout(timeoutRef.current);
     clearTimeout(warningTimeoutRef.current);
-    isLoggingOut.current = false;
-
-    // Schedule warning before logout
+  
+    if (isLoggingOut.current) {
+      console.log('⚠️ Already logging out, skipping timer reset');
+      return;
+    }
+  
     warningTimeoutRef.current = setTimeout(() => {
       if (!isLoggingOut.current) {
+        console.log('⚠️ Showing warning alert');
         Alert.alert(
           'Inactivity Warning',
-          'You will be logged out in 1 minute due to inactivity.',
-          [{ text: 'Stay Logged In', onPress: resetTimers }]
+          'You will be logged out in a few seconds due to inactivity.',
+          [
+            {
+              text: 'Stay Logged In',
+              onPress: () => {
+                console.log('🔄 User tapped Stay Logged In');
+                resetTimers();
+              },
+            },
+          ]
         );
       }
     }, AUTO_LOGOUT_TIME);
-
-    // Schedule auto logout
+  
     timeoutRef.current = setTimeout(() => {
+      console.log('🚪 Logging out now');
       isLoggingOut.current = true;
       logout(navigation);
     }, AUTO_LOGOUT_TIME + WARNING_TIME);
   };
+  
+  
 
   const panResponder = useRef(
     PanResponder.create({
@@ -56,7 +74,10 @@ export const SessionManager = ({ children }) => {
   ).current;
 
   useEffect(() => {
-    // Handle app state (foreground/background)
+    console.log('🟢 SessionManager mounted');
+    isLoggingOut.current = false; 
+    resetTimers();
+  
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (
         appState.current.match(/inactive|background/) &&
@@ -66,16 +87,14 @@ export const SessionManager = ({ children }) => {
       }
       appState.current = nextState;
     });
-
-    // Initial start
-    resetTimers();
-
+  
     return () => {
       clearTimeout(timeoutRef.current);
       clearTimeout(warningTimeoutRef.current);
       subscription.remove();
     };
   }, []);
+  
 
   return (
     <TouchableWithoutFeedback

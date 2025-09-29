@@ -13,7 +13,7 @@ export const UserProvider = ({ children }) => {
       try {
         const tokenData = await AsyncStorage.getItem('tokenData');
         if (tokenData) {
-          const { id, token, expirationTime, firstName, profilePicture, trustScore } = JSON.parse(tokenData);
+          const { id, token, expirationTime, firstName, profilePicture, trustScore, is_trusted_helper } = JSON.parse(tokenData);
         if (Date.now() < expirationTime) {
           setUser({ id, token, firstName, profilePicture, trustScore });
         }
@@ -29,12 +29,12 @@ export const UserProvider = ({ children }) => {
     loadUserData();
   }, []);
 
-  const login = async (id, token, firstName, profilePicture, trustScore, expiresIn) => {
+  const login = async (id, token, firstName, profilePicture, trustScore, is_trusted_helper, expiresIn) => {
     try {
       const expirationTime = Date.now() + expiresIn * 1000;
-      const tokenData = JSON.stringify({ id, token, expirationTime, firstName, profilePicture, trustScore });
+      const tokenData = JSON.stringify({ id, token, expirationTime, firstName, profilePicture, trustScore, is_trusted_helper });
       await AsyncStorage.setItem('tokenData', tokenData);
-      setUser({ id, token, firstName, profilePicture, trustScore });
+      setUser({ id, token, firstName, profilePicture, trustScore, is_trusted_helper });
     } catch (error) {
       console.error('Failed to save user data to AsyncStorage:', error);
     }

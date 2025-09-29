@@ -7,21 +7,62 @@ const trustScoreData = [
   {
     title: 'Ways to Earn Trust Points',
     items: [
-      'Successfully helps another user (confirmed) — +0.2',
-      'Uploads bill with all required info and passes ID verification — +0.1',
-      'Receives positive feedback from partner — +0.2',
-      'Consistent participation (e.g. once a week for 3 weeks) — +0.1',
-      'Follows through on agreed swaps or contributions — +0.2',
+      {
+        main: 'Completing a Standard Swap → +0.10 Trust Points',
+        sub: ['Must be confirmed by both parties.'],
+      },
+      {
+        main: 'Buying a Public Bill → +0.10–0.20 Trust Points',
+        sub: [
+          'Base: +0.10',
+          'Bonus: +0.05 if due soon (within 2 days)',
+          'Bonus: +0.05 if user has Trusted Helper badge',
+        ],
+      },
+      {
+        main: 'Completing an Urgent Swap Fast → +0.05–0.15 Trust Points',
+        sub: [
+          '< 24 hrs = +0.15',
+          '1–2 days = +0.10',
+          'Normal timing = +0.05',
+        ],
+      },
+      {
+        main: 'Positive Feedback (4★ or 5★ rating) → +0.05 Trust Points per rating',
+      },
+      {
+        main: 'Daily Voting Streak → +0.01 Trust Points per day',
+        sub: ['Bonus: +0.10 at 7-day streak'],
+      },
+      {
+        main: 'Weekly Consistency → +0.10 Trust Points',
+        sub: ['Helping at least once a week for 3 consecutive weeks'],
+      },
+      {
+        main: 'Following Through on Accepted Swaps → +0.20 Trust Points',
+        sub: ['Avoids ghosting or canceling after committing'],
+      },
     ],
   },
   {
     title: 'Ways to Lose Trust Points',
     items: [
-      'Confirms a help interaction dishonestly — -0.5',
-      'Ghosts another user after committing to help — -0.3',
-      'Bill is flagged as fake or unverifiable — -0.4',
-      'Repeated last-minute cancellations — -0.2',
-      'Long-term inactivity (e.g. 60+ days) — -0.1',
+      {
+        main: 'Fakes or Confirms Help Dishonestly → −0.50 Trust Points',
+        sub: ['If proof or assistance was falsified'],
+      },
+      {
+        main: 'Ghosts After Agreeing to Help → −0.30 Trust Points',
+      },
+      {
+        main: 'Bill Flagged as Fake or Unverifiable → −0.40 Trust Points',
+      },
+      {
+        main: 'Repeated Last-Minute Cancellations → −0.20 Trust Points',
+      },
+      {
+        main: 'Long-Term Inactivity (60+ days) → −0.10 Trust Points',
+      },
     ],
   },
 ];
@@ -56,9 +97,21 @@ const TrustScoreScreen = () => {
               </TouchableOpacity>
               <Collapsible collapsed={!isOpen}>
                 <View style={styles.cardBody}>
-                  {section.items.map((item, idx) => (
-                    <Text key={idx} style={styles.answer}>• {item}</Text>
-                  ))}
+                {section.items.map((item, idx) => (
+  <View key={idx} style={{ marginBottom: 16 }}>
+  <Text style={styles.answer}>
+    • <Text style={{ fontWeight: '600' }}>{item.main}</Text>
+  </Text>
+  {item.sub &&
+    item.sub.map((subItem, subIdx) => (
+      <Text key={subIdx} style={styles.subBullet}>
+        – {subItem}
+      </Text>
+    ))}
+</View>
+
+))}
+
                 </View>
               </Collapsible>
             </View>
@@ -75,6 +128,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F8EC',
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
+  subBullet: {
+    fontSize: 14,
+    color: '#555',
+    paddingLeft: 28, // bumped from 20 to 28 for cleaner visual hierarchy
+    lineHeight: 20,
+    marginTop: 2,
+  },
+  
   scrollContainer: {
     paddingHorizontal: 16,
     paddingBottom: 40,

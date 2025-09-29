@@ -24,7 +24,7 @@ const CustomDrawer = (props) => {
         <Text style={styles.menuItem}>Upload</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => navigateToScreen('Rewards')}>
-        <Text style={styles.menuItem}>Rewards</Text>
+        <Text style={styles.menuItem}>Health</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => navigateToScreen('Profile')}>
         <Text style={styles.menuItem}>Profile</Text>

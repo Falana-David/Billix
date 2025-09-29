@@ -36,7 +36,8 @@ const FlipCard = ({ bill, setBills }) => {
     const [loading, setLoading] = useState(false);
     const animatedValue = useRef(new Animated.Value(0)).current;
     const [randomAmount] = useState(() => bill.display_price ?? 3.99);
-
+    const [isPaid, setIsPaid] = useState(false);
+    
     const navigation = useNavigation();
 
     
@@ -115,12 +116,14 @@ const FlipCard = ({ bill, setBills }) => {
     
         if (presentError) {
           Alert.alert('Payment Cancelled', presentError.message || 'Canceled.');
+          // ❌ Do NOT navigate
         } else {
           Alert.alert('Payment successful!');
+          // ✅ Navigate only on success
+          setIsPaid(true);
           navigation.navigate('Wheels');
-
-
         }
+        
       } catch (error) {
         Alert.alert('Unexpected Error', error.message || 'Something went wrong');
       } finally {
@@ -158,17 +161,30 @@ const FlipCard = ({ bill, setBills }) => {
             </View>
   
             <View style={styles.cardContent}>
-              <Text style={styles.amount}>${randomAmount.toFixed(2)}</Text>
-              <Text style={styles.type}>{bill.type}</Text>
-              <Text style={styles.date}>{bill.date}</Text>
-              <Text style={styles.description}>{bill.description}</Text>
-              <Text style={styles.reward}>{bill.reward}</Text>
-              <TouchableOpacity onPress={() => setShowTrustModal(true)}>
-                <Text style={styles.trustGain}>{bill.trustGain}</Text>
-              </TouchableOpacity>
-  
-              
-            </View>
+  {/* Amount, Type, Date */}
+  <Text style={styles.amount}>${randomAmount.toFixed(2)}</Text>
+  <Text style={styles.type}>{bill.type}</Text>
+  <Text style={styles.date}>{bill.date}</Text>
+
+  {/* Middle visual strip */}
+  <View style={styles.middleStrip}>
+    <Text style={styles.middleStripText}> Bill Preview</Text>
+  </View>
+
+  {/* Description */}
+  {bill.description ? (
+    <Text style={styles.description}>{bill.description}</Text>
+  ) : null}
+
+  {/* Reward Section */}
+  <Text style={styles.reward}>{bill.reward}</Text>
+
+  {/* Trust Score Boost – more professional style */}
+  <TouchableOpacity onPress={() => setShowTrustModal(true)}>
+    <Text style={styles.trustGainLabel}>Tap to see Trust Score Boost</Text>
+  </TouchableOpacity>
+</View>
+
           </Animated.View>
   
           <Animated.View
@@ -179,20 +195,46 @@ const FlipCard = ({ bill, setBills }) => {
     !flipped && styles.hidden,
   ]}
 >
-  <Text style={styles.reason}>{bill.reason}</Text>
+  <Text style={styles.reason}>"{bill.reason}"</Text>
 
-  <Text style={styles.amount}>Amount: ${randomAmount.toFixed(2)}</Text>
+  <View style={styles.infoRow}>
+    <Text style={styles.label}>Bill Type:</Text>
+    <Text style={styles.value}>{bill.type}</Text>
+  </View>
 
-  <TouchableOpacity
-    style={styles.payButton}
-    onPress={handlePayPress}
-    disabled={loading}
-  >
-    <Text style={styles.payButtonText}>
-      {loading ? 'Processing...' : 'Pay Now'}
-    </Text>
-  </TouchableOpacity>
+  <View style={styles.infoRow}>
+    <Text style={styles.label}>Due Date:</Text>
+    <Text style={styles.value}>{bill.date}</Text>
+  </View>
+
+  <View style={styles.infoRow}>
+    <Text style={styles.label}>Amount:</Text>
+    <Text style={styles.value}>${randomAmount.toFixed(2)}</Text>
+  </View>
+
+  <View style={styles.benefitsBox}>
+    <Text style={styles.benefitLine}>• Trust Boost: <Text style={styles.boldValue}>{bill.trustGain}</Text></Text>
+    <Text style={styles.benefitLine}>• {bill.reward}</Text>
+  </View>
+
+  {isPaid ? (
+    <View style={[styles.payButton, { backgroundColor: '#A3D7A5' }]}>
+      <Text style={styles.payButtonText}> Bill Covered</Text>
+    </View>
+  ) : (
+    <TouchableOpacity
+      style={styles.payButton}
+      onPress={handlePayPress}
+      disabled={loading}
+    >
+      <Text style={styles.payButtonText}>
+        {loading ? 'Processing...' : 'Pay Now'}
+      </Text>
+    </TouchableOpacity>
+  )}
 </Animated.View>
+
+
 
   
           <Modal
@@ -225,7 +267,7 @@ const StarterBills = () => {
   const [selectedState, setSelectedState] = useState('');
   const [bills, setBills] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-
+  const [sortOption, setSortOption] = useState('lowest'); // or 'newest'
   
   useEffect(() => {
     fetchBills();
@@ -257,9 +299,12 @@ const StarterBills = () => {
     await fetchBills();
     setRefreshing(false);
   };
-  const filteredBills = selectedState
-  ? bills.filter(b => b.state === selectedState)
-  : bills;
+  const sortedBills = [...bills].sort((a, b) => {
+    if (sortOption === 'lowest') return a.display_price - b.display_price;
+    if (sortOption === 'newest') return new Date(b.date) - new Date(a.date);
+    return 0;
+  });
+  
 
 
 
@@ -283,23 +328,26 @@ const StarterBills = () => {
 
       <View style={styles.filterRow}>
         <Text style={styles.filterLabel}>Sort by:</Text>
-        <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterText}>Lowest</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterText}>Newest</Text>
-        </TouchableOpacity>
-        <Dropdown
-          data={stateOptions}
-          labelField="label"
-          valueField="value"
-          placeholder="By State"
-          value={selectedState}
-          onChange={item => setSelectedState(item.value)}
-          style={styles.dropdown}
-          itemTextStyle={{ color: '#2F5D4A' }}
-          placeholderStyle={{ color: '#4A7C59' }}
-        />
+        <TouchableOpacity
+  style={[
+    styles.filterButton,
+    sortOption === 'lowest' && { backgroundColor: '#CFEEDC' },
+  ]}
+  onPress={() => setSortOption('lowest')}
+>
+  <Text style={styles.filterText}>Lowest</Text>
+</TouchableOpacity>
+
+<TouchableOpacity
+  style={[
+    styles.filterButton,
+    sortOption === 'newest' && { backgroundColor: '#CFEEDC' },
+  ]}
+  onPress={() => setSortOption('newest')}
+>
+  <Text style={styles.filterText}>Newest</Text>
+</TouchableOpacity>
+
       </View>
 
       <ScrollView
@@ -310,9 +358,10 @@ const StarterBills = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-{filteredBills.map((bill, index) => (
+{sortedBills.map((bill, index) => (
   <FlipCard key={`bill-${bill.id || index}`} bill={bill} setBills={setBills} />
 ))}
+
 
 
       </ScrollView>
@@ -442,37 +491,52 @@ const styles = StyleSheet.create({
       color: '#4A7C59',
       textDecorationLine: 'underline',
     },
-    carousel: {
-      paddingBottom: 20,
-    },
     cardWrapper: {
-      width: screenWidth * 0.75,
-      height: 400,
+      width: screenWidth * 0.8,
+      height: 420,
       marginHorizontal: 10,
-      perspective: 1000,
+      perspective: 1200,
     },
     card: {
       width: '100%',
       height: '100%',
       position: 'absolute',
       backfaceVisibility: 'hidden',
-      borderRadius: 18,
+      borderRadius: 20,
       padding: 18,
       justifyContent: 'space-between',
-    },
-    cardFront: {
-      backgroundColor: '#FFFFFF',
+      overflow: 'hidden',
       shadowColor: '#000',
       shadowOpacity: 0.1,
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    cardFront: {
+      backgroundColor: '#FFFAF7', // Light off-white
+      borderColor: '#E1EDE7',
+      borderWidth: 3,
+      borderRadius: 20,
+      shadowColor: '#000',
+      shadowOpacity: 0.06,
       shadowOffset: { width: 0, height: 2 },
       shadowRadius: 6,
-      elevation: 4,
+      elevation: 5,
     },
+    
     cardBack: {
-      backgroundColor: '#EAF2E7',
-      justifyContent: 'center',
+      backgroundColor: '#D0EAD3',
       alignItems: 'center',
-      paddingHorizontal: 25,
+      paddingHorizontal: 24,
+      paddingVertical: 26,
+      borderWidth: 1,
+      borderColor: '#B2D8B2',
+      borderRadius: 20,
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
     },
     hidden: {
       opacity: 0,
@@ -483,56 +547,59 @@ const styles = StyleSheet.create({
       justifyContent: 'space-between',
     },
     profileImageLarge: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      borderWidth: 1,
+      borderColor: '#A2D7A3',
     },
     userDetails: {
       flex: 1,
       marginLeft: 10,
     },
     user: {
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '600',
-      color: '#4A7C59',
+      color: '#2C5B3C',
     },
     state: {
       fontSize: 12,
-      color: '#888',
+      color: '#709B82',
     },
     icon: {
       fontSize: 28,
       marginLeft: 10,
+      color: '#6B8F71',
     },
     cardContent: {
-      paddingTop: 10,
+      paddingTop: 12,
     },
     amount: {
-      fontSize: 28,
+      fontSize: 30,
       fontWeight: 'bold',
-      color: '#4A7C59',
+      color: '#2E6046',
       marginBottom: 6,
     },
     type: {
-      fontSize: 16,
-      color: '#2F5D4A',
+      fontSize: 15,
+      color: '#4A7C59',
       marginBottom: 2,
     },
     date: {
       fontSize: 13,
-      color: '#888',
-      marginBottom: 10,
+      color: '#8EA897',
+      marginBottom: 8,
     },
     description: {
       fontSize: 14,
-      color: '#555',
-      textAlign: 'left',
-      marginBottom: 12,
+      color: '#3C3C3C',
+      marginBottom: 10,
+      lineHeight: 20,
     },
     reward: {
       fontSize: 14,
-      color: '#4A7C59',
-      fontWeight: 'bold',
+      color: '#2F764D',
+      fontWeight: '600',
     },
     trustGain: {
       fontSize: 13,
@@ -543,9 +610,40 @@ const styles = StyleSheet.create({
     reason: {
       fontSize: 16,
       fontStyle: 'italic',
-      color: '#4A4A4A',
+      color: '#3B4D3A',
       textAlign: 'center',
+      marginBottom: 14,
     },
+    backDetail: {
+      fontSize: 14,
+      color: '#375744',
+      marginBottom: 6,
+    },
+    backReward: {
+      fontSize: 14,
+      color: '#265F45',
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    payButton: {
+      marginTop: 20,
+      backgroundColor: '#4A7C59',
+      paddingVertical: 12,
+      paddingHorizontal: 30,
+      borderRadius: 20,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+      elevation: 5,
+    },
+    payButtonText: {
+      color: '#fff',
+      fontWeight: '700',
+      fontSize: 15,
+    },
+    
     modalOverlay: {
       flex: 1,
       justifyContent: 'center',
@@ -577,20 +675,90 @@ const styles = StyleSheet.create({
       fontWeight: '600',
       textDecorationLine: 'underline',
     },
-    payButton: {
-        marginTop: 14,
-        backgroundColor: '#4A7C59',
-        paddingVertical: 10,
-        borderRadius: 10,
-        alignItems: 'center',
-      },
-      
-      payButtonText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 14,
-      },
-      
+    middleStrip: {
+      backgroundColor: '#F1F4F2',
+      paddingVertical: 6,
+      paddingHorizontal: 14,
+      borderRadius: 10,
+      alignSelf: 'flex-start',
+      marginTop: 16,
+      marginBottom: 10,
+    },
+    middleStripText: {
+      color: '#2F5D4A',
+      fontSize: 13,
+      fontWeight: '500',
+    },
+    trustGainLabel: {
+      fontSize: 13,
+      color: '#2F5D4A',
+      textDecorationLine: 'underline',
+      marginTop: 10,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      width: '100%',
+      marginBottom: 6,
+    },
+    label: {
+      fontSize: 14,
+      color: '#5A7B6F',
+      fontWeight: '500',
+    },
+    value: {
+      fontSize: 14,
+      color: '#2F5D4A',
+    },
+    benefitsBox: {
+      backgroundColor: '#E0F2E7',
+      padding: 12,
+      borderRadius: 12,
+      marginTop: 16,
+      width: '100%',
+    },
+    benefitLine: {
+      fontSize: 13,
+      color: '#2F5D4A',
+      marginBottom: 4,
+    },
+    boldValue: {
+      fontWeight: '700',
+    },
+    trustContainer: {
+      marginTop: 8,
+      alignItems: 'center',
+    },
+    
+    trustLabel: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: '#4A7856',
+      marginBottom: 4,
+    },
+    
+    progressBar: {
+      width: '80%',
+      height: 6,
+      backgroundColor: '#E0E0E0',
+      borderRadius: 4,
+      overflow: 'hidden',
+    },
+    
+    progressFill: {
+      height: '100%',
+      backgroundColor: '#70C174', // green
+      borderRadius: 4,
+    },
+    
+    trustValue: {
+      fontSize: 12,
+      color: '#555',
+      marginTop: 4,
+    },
+    
+    
+    
   });
   
 export default StarterBills;

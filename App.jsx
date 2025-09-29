@@ -12,12 +12,20 @@ import { UserProvider } from './src/components/UserContext';
 import { SessionManager } from './src/components/SessionManager';
 
 import HomeScreen from './src/components/HomeScreenFlow/HomeScreen';
+import ClustersScreen from './src/components/HomeScreenFlow/ClustersScreen';
+import FlashDropScreen from './src/components/HomeScreenFlow/FlashDropScreen';
+
 import WriteReviewScreen from './src/components/HomeScreenFlow/WriteReviewScreen';
 import ExploreScreen from './src/components/HomeScreenFlow/ExploreScreen';
 import UploadScreen from './src/components/HomeScreenFlow/UploadScreen';
 import RewardsScreen from './src/components/HomeScreenFlow/Rewards/RewardsScreen';
 import ProfileScreen from './src/components/HomeScreenFlow/Profile_Information/ProfileScreen';
 import SignUpScreen from './src/components/SignupFlow/SignUpScreen';
+import BillInsightQuestions from './src/components/HomeScreenFlow/SwapBills/BillInsightQuestions';
+import BillSummaryPreview from './src/components/HomeScreenFlow/SwapBills/BillSummaryPreview';
+import InsightReport from './src/components/HomeScreenFlow/SwapBills/InsightReport';
+import StaticPage from './src/components/HomeScreenFlow/StaticPage';
+
 
 import StarterBill from './src/components/HomeScreenFlow/StarterBill';
 import ConfirmBill from './src/components/HomeScreenFlow/SwapBills/ConfirmBill';
@@ -46,6 +54,8 @@ import HelpScreen from './src/components/HomeScreenFlow/Profile_Information/Help
 import AccountControlsScreen from './src/components/HomeScreenFlow/Profile_Information/AccountControlsScreen';
 import TrustScoreScreen from './src/components/HomeScreenFlow/Profile_Information/TrustScoreScreen';
 import Wheels from './src/components/Wheels';
+
+import CoPilotRequest from './src/components/HomeScreenFlow/SwapBills/CoPilotRequest';
 
 enableScreens();
 
@@ -80,6 +90,9 @@ const App = () => {
           <Stack.Screen name="Terms" component={TermsScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Home" component={MainTabs} options={{ headerShown: false }} />
           <Stack.Screen name="WriteReviewScreen" component={WriteReviewScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="ClustersScreen" component={ClustersScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="FlashDropScreen" component={FlashDropScreen} options={{ headerShown: false }} />
+
 
           <Stack.Screen name="StartSwap" component={StartSwap} options={{ headerShown: false }} />
           <Stack.Screen name="ChatScreen" component={ChatScreen} options={{ headerShown: false }} />
@@ -94,6 +107,9 @@ const App = () => {
           <Stack.Screen name="Active" component={Active} options={{ headerShown: false }} />
           <Stack.Screen name="MyCompleted" component={MyCompleted} options={{ headerShown: false }} />
           <Stack.Screen name="BillSharesScreen" component={BillSharesScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="BillInsightQuestions" component={BillInsightQuestions} options={{ headerShown: false }} />
+          <Stack.Screen name="BillSummaryPreview" component={BillSummaryPreview} options={{ headerShown: false }} />
+          <Stack.Screen name="InsightReport" component={InsightReport} options={{ headerShown: false }} />
 
           <Stack.Screen name="FindMatches" component={FindMatches} options={{ headerShown: false }} />
           <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ headerShown: false }} />
@@ -102,6 +118,8 @@ const App = () => {
           <Stack.Screen name="TrustScoreScreen" component={TrustScoreScreen} options={{ headerShown: false }} />
           <Stack.Screen name="MyContributions" component={MyContributions} options={{ headerShown: false }} />
           <Stack.Screen name="Wheels" component={Wheels} options={{ headerShown: false }} />
+          <Stack.Screen name="CoPilotRequest" component={CoPilotRequest} options={{ headerShown: false }} />
+          <Stack.Screen name="StaticPage" component={StaticPage} options={{ headerShown: false }} />
 
         </Stack.Navigator>
         </SessionManager>

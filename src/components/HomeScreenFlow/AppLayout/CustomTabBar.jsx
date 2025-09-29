@@ -18,7 +18,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
   // Define tab bar background colors for each route
   const tabBarBackgroundColors = {
     Home: '#4A7C59',       // Slightly darker green for Home
-    Explore: '#3b5998',    // Slightly darker gray for Explore
+    Explore: '#4A7C59',    // Slightly darker gray for Explore
     Upload: '#4A7C59',     // Slightly darker yellow for Upload
     Rewards: '#CD5C5C',    // Slightly darker gold for Rewards
     Profile: '#4A7C59',    // Slightly darker pink for Profile
@@ -57,7 +57,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
           const iconName = route.name === 'Home' ? require('../../assets/home.png') :
                            route.name === 'Explore' ? require('../../assets/explore.png') :
                            route.name === 'Upload' ? require('../../assets/upload.png') :
-                           route.name === 'Rewards' ? require('../../assets/rewards.png') :
+                           route.name === 'Rewards' ? require('../../assets/heart.png') :
                            route.name === 'Profile' ? require('../../assets/profile.png') :
                            require('../../assets/home.png');
 
